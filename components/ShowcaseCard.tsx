@@ -110,19 +110,28 @@ export default function ShowcaseCard({
               <div className="relative h-full w-1/2 overflow-hidden border-r border-black/40 bg-[#161619]">
                 {item.variants[0].mediaUrl ? (
                   item.variants[0].mediaType === "video" || item.variants[0].mediaUrl.endsWith(".mp4") ? (
-                    <AutoCropVideo src={item.variants[0].mediaUrl} variant="card" />
+                    <video
+                      src={item.variants[0].mediaUrl}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="absolute inset-y-0 left-0 h-full w-[200%] max-w-none object-cover pointer-events-none"
+                    />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={item.variants[0].mediaUrl}
                       alt={item.variants[0].tool}
-                      className="h-full w-full object-cover"
+                      className="absolute inset-y-0 left-0 h-full w-[200%] max-w-none object-cover"
                     />
                   )
                 ) : (
-                  <PreviewArt item={{ pattern: item.pattern, hue: item.variants[0].hue }} />
+                  <div className="absolute inset-y-0 left-0 h-full w-[200%]">
+                    <PreviewArt item={{ pattern: item.pattern, hue: item.variants[0].hue }} />
+                  </div>
                 )}
-                <span className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-[3px] text-[9.5px] uppercase tracking-wide text-white backdrop-blur">
+                <span className="absolute bottom-2 left-2 z-10 rounded-full bg-black/70 px-2 py-[3px] text-[9.5px] uppercase tracking-wide text-white backdrop-blur">
                   {item.variants[0].tool}
                 </span>
               </div>
@@ -131,25 +140,34 @@ export default function ShowcaseCard({
               <div className="relative h-full w-1/2 overflow-hidden bg-[#161619]">
                 {item.variants[1].mediaUrl ? (
                   item.variants[1].mediaType === "video" || item.variants[1].mediaUrl.endsWith(".mp4") ? (
-                    <AutoCropVideo src={item.variants[1].mediaUrl} variant="card" />
+                    <video
+                      src={item.variants[1].mediaUrl}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="absolute inset-y-0 right-0 h-full w-[200%] max-w-none object-cover pointer-events-none"
+                    />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={item.variants[1].mediaUrl}
                       alt={item.variants[1].tool}
-                      className="h-full w-full object-cover"
+                      className="absolute inset-y-0 right-0 h-full w-[200%] max-w-none object-cover"
                     />
                   )
                 ) : (
-                  <PreviewArt item={{ pattern: item.pattern, hue: item.variants[1].hue }} />
+                  <div className="absolute inset-y-0 right-0 h-full w-[200%]">
+                    <PreviewArt item={{ pattern: item.pattern, hue: item.variants[1].hue }} />
+                  </div>
                 )}
-                <span className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-[3px] text-[9.5px]  uppercase tracking-wide text-white backdrop-blur">
+                <span className="absolute bottom-2 right-2 z-10 rounded-full bg-black/70 px-2 py-[3px] text-[9.5px] uppercase tracking-wide text-white backdrop-blur">
                   {item.variants[1].tool}
                 </span>
               </div>
             </div>
 
-            <span className="absolute left-1/2 top-1/2 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black text-[10px] font-black text-white ring-2 ring-white/80 shadow-xl">
+            <span className="absolute left-1/2 top-1/2 z-20 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black text-[10px] font-black text-white ring-2 ring-white/80 shadow-xl">
               VS
             </span>
             <div className="pointer-events-none absolute inset-0 bg-white/0 transition group-hover:bg-white/[0.04]" />
