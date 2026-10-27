@@ -1,0 +1,232 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-system, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+
+  /* dark gallery theme (measured from the reference layout study) */
+  --color-paper: #0a0a0a;
+  --color-panel: #111113;
+  --color-panel-2: #1c1c1f;
+  --color-ink: #f4f4f5;
+  --color-ink-2: #a1a1aa;
+  --color-ink-3: #71717a;
+  --color-line: #26262a;
+  --color-accent: #c4b5fd;   /* lavender */
+  --color-accent-2: #fda4af; /* peach */
+
+  --shadow-card: 0 12px 32px -16px rgba(0, 0, 0, 0.55);
+  --shadow-lift: 0 20px 44px -16px rgba(0, 0, 0, 0.65);
+  --shadow-btn: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #f4f4f5;
+  color: #0a0a0c;
+}
+
+.text-glow-grad {
+  background-image: radial-gradient(80.17% 109.2% at 44.373% 35.1526%, rgb(208, 178, 255) 0%, rgb(255, 238, 216) 42.83%, rgb(232, 64, 13) 88.38%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-shift 8s ease infinite;
+}
+
+.mark-grad {
+  background: linear-gradient(135deg, #fda4af, #f0abfc 55%, #818cf8);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.nice-scroll::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.nice-scroll::-webkit-scrollbar-thumb {
+  background: #2c2c33;
+  border-radius: 999px;
+}
+
+.font-display {
+  font-family: var(--font-sans), "Inter", sans-serif;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+/* ?prompt overlay entrance, 0.18s like the reference */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.18s ease;
+}
+/* blurred twin of the gradient word, like the reference headline */
+.grad-blur {
+  background-image: radial-gradient(80.17% 109.2% at 44.373% 35.1526%, rgb(208, 178, 255) 0%, rgb(255, 238, 216) 42.83%, rgb(232, 64, 13) 88.38%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: blur(10px);
+  mix-blend-mode: screen;
+  opacity: 0.8;
+  animation: gradient-shift 8s ease infinite;
+}
+/* gradient-ring label pill (mask technique from the provided code) */
+.grad-ring {
+  position: relative;
+}
+.grad-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  padding: 1px;
+  background: radial-gradient(80.17% 109.2% at 44.373% 35.1526%, rgb(208, 178, 255) 0%, rgb(255, 238, 216) 42.83%, rgb(232, 64, 13) 88.38%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.grad-text {
+  background-image: radial-gradient(80.17% 109.2% at 44.373% 35.1526%, rgb(208, 178, 255) 0%, rgb(255, 238, 216) 42.83%, rgb(232, 64, 13) 88.38%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Detail page active card fixed width for big screens:
+   Spans exactly the first 3 columns of the grid (gap-3 = 0.75rem / 12px)
+   lg: 4 columns -> 3 columns = calc(75% - 3px)
+   xl: 5 columns -> 3 columns = calc(60% - 4.8px) */
+@media (min-width: 1024px) {
+  .detail-card-fixed-width {
+    width: calc((100% - 3 * 0.75rem) / 4 * 3 + 2 * 0.75rem) !important;
+    min-width: calc((100% - 3 * 0.75rem) / 4 * 3 + 2 * 0.75rem) !important;
+    max-width: calc((100% - 3 * 0.75rem) / 4 * 3 + 2 * 0.75rem) !important;
+  }
+}
+@media (min-width: 1280px) {
+  .detail-card-fixed-width {
+    width: calc((100% - 4 * 0.75rem) / 5 * 3 + 2 * 0.75rem) !important;
+    min-width: calc((100% - 4 * 0.75rem) / 5 * 3 + 2 * 0.75rem) !important;
+    max-width: calc((100% - 4 * 0.75rem) / 5 * 3 + 2 * 0.75rem) !important;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(1);
+    box-shadow: rgba(0, 0, 0, 0.5) 0px 12px 24px 0px;
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 36px 0px;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: rgba(0, 0, 0, 0.5) 0px 12px 24px 0px;
+  }
+}
+@keyframes color-change {
+  0% {
+    fill: var(--logo-color, #ffffff);
+  }
+  50% {
+    fill: rgba(255, 255, 255, 0.55);
+  }
+  100% {
+    fill: var(--logo-color, #ffffff);
+  }
+}
+
+.loader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 340px;
+  height: 340px;
+  --logo-color: #ffffff;
+}
+.loader .box {
+  position: absolute;
+  border-radius: 50%;
+  animation: ripple 2.4s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+.loader .box:nth-child(1) {
+  width: 100px;
+  height: 100px;
+  background: #282830;
+  box-shadow: rgba(0, 0, 0, 0.55) 0px 8px 20px;
+  z-index: 5;
+}
+.loader .box:nth-child(2) {
+  width: 152px;
+  height: 152px;
+  background: #1e1e25;
+  box-shadow: rgba(0, 0, 0, 0.48) 0px 10px 22px;
+  z-index: 4;
+  animation-delay: 0.3s;
+}
+.loader .box:nth-child(3) {
+  width: 208px;
+  height: 208px;
+  background: #17171d;
+  box-shadow: rgba(0, 0, 0, 0.42) 0px 12px 24px;
+  z-index: 3;
+  animation-delay: 0.6s;
+}
+.loader .box:nth-child(4) {
+  width: 264px;
+  height: 264px;
+  background: #111117;
+  box-shadow: rgba(0, 0, 0, 0.36) 0px 14px 26px;
+  z-index: 2;
+  animation-delay: 0.9s;
+}
+.loader .box:nth-child(5) {
+  width: 320px;
+  height: 320px;
+  background: #0c0c11;
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 16px 30px;
+  z-index: 1;
+  animation-delay: 1.2s;
+}
+.loader .logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.loader .logo svg {
+  width: 100%;
+  height: 100%;
+  animation: color-change 3s ease-in-out infinite;
+}
