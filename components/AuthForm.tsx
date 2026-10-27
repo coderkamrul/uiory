@@ -30,12 +30,28 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   /* already signed in? go straight to the right home */
   useEffect(() => {
     if (!SUPABASE_CONFIGURED) return;
+
+    // Check existing session
     supabase.auth.getSession().then(async ({ data }) => {
       if (data.session) {
         const p = await fetchProfile(data.session.user.id);
         router.replace(next && next.startsWith("/") ? next : homeForRole(p));
       }
     });
+
+    // Listen to auth changes (e.g. when arriving from email confirmation link)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        const p = await fetchProfile(session.user.id);
+        router.replace(next && next.startsWith("/") ? next : homeForRole(p));
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -52,10 +68,18 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
     try {
       if (mode === "signup") {
         if (!name.trim()) throw new Error("Please enter your name.");
+        const redirectUrl =
+          typeof window !== "undefined"
+            ? `${window.location.origin}/dashboard`
+            : "https://uiory.com/dashboard";
+
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { name: name.trim() } },
+          options: {
+            data: { name: name.trim() },
+            emailRedirectTo: redirectUrl,
+          },
         });
         if (error) throw error;
         if (data.session) {

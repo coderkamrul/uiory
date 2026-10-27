@@ -24,17 +24,42 @@ export default function UserDashboardPage() {
   const [memberSince, setMemberSince] = useState("");
 
   useEffect(() => {
-    (async () => {
-      if (!SUPABASE_CONFIGURED) return setProfile(null);
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
+    if (!SUPABASE_CONFIGURED) {
+      setProfile(null);
+      return;
+    }
+
+    let isMounted = true;
+    const applySession = async (userSession: typeof supabase extends { auth: { getSession: () => Promise<{ data: { session: infer S } }> } } ? S : any) => {
+      if (!userSession) {
         router.replace("/login?next=/dashboard");
         return;
       }
-      setEmail(data.session.user.email ?? "");
-      setMemberSince((data.session.user.created_at ?? "").slice(0, 10));
-      setProfile(await fetchProfile(data.session.user.id));
-    })();
+      if (!isMounted) return;
+      setEmail(userSession.user.email ?? "");
+      setMemberSince((userSession.user.created_at ?? "").slice(0, 10));
+      const p = await fetchProfile(userSession.user.id);
+      if (isMounted) setProfile(p);
+    };
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        applySession(data.session);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        applySession(session);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   async function signOut() {
