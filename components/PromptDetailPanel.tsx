@@ -9,6 +9,7 @@ import PreviewArt from "./PreviewArt";
 import AutoCropVideo from "./AutoCropVideo";
 import CopyButton from "./CopyButton";
 import ShowcaseCard from "./ShowcaseCard";
+import DetailCompare from "./DetailCompare";
 import { ArrowLeft, ArrowUpRight, Check, Copy, Globe, Heart, Lock } from "lucide-react";
 import { Component } from "@/components/ui/ripple-pulse-loader";
 
@@ -152,7 +153,7 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
     <button
       onClick={handleBack}
       aria-label="Back"
-      className="fixed left-[22px] top-[112px] z-50 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-[#1c1c1f] text-[#e5e5e5] transition-colors hover:bg-[#26262a] sm:left-8"
+      className="fixed left-[22px] top-[112px] z-50 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-[#1c1c1f] text-[#e5e5e5] transition-colors hover:bg-[#26262a] cursor-pointer sm:left-8"
     >
       <ArrowLeft size={20} />
     </button>
@@ -163,7 +164,7 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
     <button
       onClick={handleBack}
       aria-label="Back"
-      className="absolute left-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-[#1c1c1f]/90 text-[#e5e5e5] shadow-lg backdrop-blur transition-colors hover:bg-[#26262a]"
+      className="absolute left-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-[#1c1c1f]/90 text-[#e5e5e5] shadow-lg backdrop-blur transition-colors hover:bg-[#26262a] cursor-pointer"
     >
       <ArrowLeft size={20} />
     </button>
@@ -208,23 +209,15 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
                 <div className="relative w-full overflow-hidden bg-[#303030] flex items-center justify-center">
                   {backBtnOverlay}
 
-                  {isCompare && variant?.mediaUrl ? (
-                    variant.mediaType === "video" || variant.mediaUrl.endsWith(".mp4") ? (
-                      <AutoCropVideo
-                        src={variant.mediaUrl}
-                        variant="detail"
-                        controls={false}
+                  {isCompare && item.variants && item.variants.length >= 2 ? (
+                    <div className="relative w-full h-full min-h-[400px] flex items-center justify-center">
+                      <DetailCompare
+                        beforeUrl={variant?.mediaUrl || ""}
+                        beforeType={variant?.mediaType || "image"}
+                        afterUrl={item.variants[1]?.mediaUrl || ""}
+                        afterType={item.variants[1]?.mediaType || "image"}
                       />
-                    ) : (
-                      <div className="relative flex h-full max-h-[78vh] w-full items-center justify-center overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={variant.mediaUrl}
-                          alt={variant.tool}
-                          className="block h-auto w-full max-h-[78vh] object-contain transition-opacity duration-300 opacity-100"
-                        />
-                      </div>
-                    )
+                    </div>
                   ) : !isCompare && (item.mediaUrl ?? item.imageUrl) ? (
                     (item.mediaType === "video" && item.mediaUrl) || (!item.mediaUrl && item.imageUrl?.endsWith(".mp4")) ? (
                       <AutoCropVideo
@@ -326,46 +319,7 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
                   )}
                 </div>
 
-                {isCompare ? (
-                  <div className="flex flex-col">
-                    <span className="text-[10px] leading-none text-[#a1a1aa]/40">
-                      Builders
-                    </span>
-                    <div className="mt-2 flex flex-col gap-2">
-                      {item.variants!.map((v, i) => (
-                        <button
-                          key={v.tool}
-                          onClick={() => setActive(i)}
-                          className={`flex cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors ${active === i
-                            ? "bg-white/[0.08] ring-1 ring-white/15"
-                            : "bg-white/[0.04] hover:bg-white/[0.07]"
-                            }`}
-                        >
-                          <span
-                            className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-xl text-[12px] font-black text-white"
-                            style={{ background: `hsl(${v.hue} 70% 45%)` }}
-                          >
-                            {v.tool.charAt(0)}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="flex items-center gap-1 text-sm font-semibold text-[#e5e5e5]">
-                              <span className="truncate">{v.tool}</span>
-                              <ArrowUpRight size={14} className="shrink-0 text-[#a1a1aa]" />
-                            </span>
-                            <span className="block truncate text-xs text-[#a1a1aa]">
-                              {v.model} · {v.timeTaken}
-                            </span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                    {variant && (
-                      <p className="mt-3 text-[12.5px] italic leading-relaxed text-[#a1a1aa]">
-                        “{variant.verdict}”
-                      </p>
-                    )}
-                  </div>
-                ) : null}
+                {null}
 
                 {/* Sponsored section:
                     - No sponsors: subtle empty-state pill

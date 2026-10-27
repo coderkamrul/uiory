@@ -80,9 +80,8 @@ export default function ShowcaseCard({
       </span>
       <Heart
         size={18}
-        className={`transition-colors duration-150 ${
-          liked ? "fill-white text-white" : "text-white"
-        }`}
+        className={`transition-colors duration-150 ${liked ? "fill-white text-white" : "text-white"
+          }`}
       />
     </button>
   );
@@ -123,7 +122,7 @@ export default function ShowcaseCard({
                 ) : (
                   <PreviewArt item={{ pattern: item.pattern, hue: item.variants[0].hue }} />
                 )}
-                <span className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-[3px] text-[9.5px] font-bold uppercase tracking-wide text-white backdrop-blur">
+                <span className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-[3px] text-[9.5px] uppercase tracking-wide text-white backdrop-blur">
                   {item.variants[0].tool}
                 </span>
               </div>
@@ -144,7 +143,7 @@ export default function ShowcaseCard({
                 ) : (
                   <PreviewArt item={{ pattern: item.pattern, hue: item.variants[1].hue }} />
                 )}
-                <span className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-[3px] text-[9.5px] font-bold uppercase tracking-wide text-white backdrop-blur">
+                <span className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-[3px] text-[9.5px]  uppercase tracking-wide text-white backdrop-blur">
                   {item.variants[1].tool}
                 </span>
               </div>
@@ -157,9 +156,8 @@ export default function ShowcaseCard({
           </div>
         ) : (
           <div
-            className={`relative mb-3 w-full shrink-0 overflow-hidden rounded-[calc(1rem+4px)] ${
-              bare ? "aspect-[4/3]" : ASPECT[item.pattern]
-            }`}
+            className={`relative mb-3 w-full shrink-0 overflow-hidden rounded-[calc(1rem+4px)] ${bare ? "aspect-[4/3]" : ASPECT[item.pattern]
+              }`}
           >
             {heartButton}
             <PreviewArt item={item} />
