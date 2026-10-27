@@ -14,8 +14,8 @@ import {
   Trash2,
   UploadCloud,
 } from "lucide-react";
-import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
-import { listComponents } from "@/lib/db";
+import { supabase, SUPABASE_CONFIGURED, MEDIA_BUCKET, deleteMediaFromStorage } from "@/lib/supabase";
+import { listComponents, updateComponent } from "@/lib/db";
 import { Component as Loader } from "@/components/ui/ripple-pulse-loader";
 
 interface MediaItem {
@@ -76,6 +76,11 @@ export default function AdminMediaPage() {
       const components = await listComponents();
       for (const comp of components) {
         if (comp.mediaUrl && !mediaMap.has(comp.mediaUrl)) {
+          // If this URL is in our Supabase storage bucket, but was NOT returned by storage.list(),
+          // it means the file was deleted from storage! Do NOT add it as a ghost card!
+          if (comp.mediaUrl.includes(`/${MEDIA_BUCKET}/`)) {
+            continue;
+          }
           const isVideo =
             comp.mediaType === "video" || /\.(mp4|webm|mov)$/i.test(comp.mediaUrl);
           const name = comp.mediaUrl.split("/").pop() || comp.title;
@@ -88,6 +93,9 @@ export default function AdminMediaPage() {
         if (comp.variants) {
           for (const v of comp.variants) {
             if (v.mediaUrl && !mediaMap.has(v.mediaUrl)) {
+              if (v.mediaUrl.includes(`/${MEDIA_BUCKET}/`)) {
+                continue;
+              }
               const isVideo =
                 v.mediaType === "video" || /\.(mp4|webm|mov)$/i.test(v.mediaUrl);
               const name = v.mediaUrl.split("/").pop() || `${comp.title} - ${v.tool}`;
@@ -161,12 +169,40 @@ export default function AdminMediaPage() {
     if (!confirm(`Delete "${item.name}" from storage?`)) return;
     try {
       if (SUPABASE_CONFIGURED) {
-        await supabase.storage.from("component-media").remove([item.name]);
+        await deleteMediaFromStorage(item.url, item.name);
+
+        // Also clean up any component references in database so components don't have broken links
+        try {
+          const components = await listComponents();
+          for (const comp of components) {
+            let changed = false;
+            const updated = { ...comp };
+            if (comp.mediaUrl === item.url || comp.imageUrl === item.url) {
+              updated.mediaUrl = undefined;
+              updated.imageUrl = undefined;
+              changed = true;
+            }
+            if (comp.variants) {
+              const [v0, v1] = comp.variants;
+              const newV0 = v0.mediaUrl === item.url ? { ...v0, mediaUrl: undefined } : v0;
+              const newV1 = v1.mediaUrl === item.url ? { ...v1, mediaUrl: undefined } : v1;
+              if (newV0 !== v0 || newV1 !== v1) {
+                updated.variants = [newV0, newV1];
+                changed = true;
+              }
+            }
+            if (changed) {
+              await updateComponent(comp.slug, updated);
+            }
+          }
+        } catch (dbErr) {
+          console.warn("Component reference cleanup warning:", dbErr);
+        }
       }
       setItems((prev) => prev.filter((i) => i.url !== item.url));
       if (selected?.url === item.url) setSelected(null);
-    } catch (err) {
-      alert("Failed to delete file from storage.");
+    } catch (err: unknown) {
+      alert(`Failed to delete file from storage: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -350,6 +386,10 @@ export default function AdminMediaPage() {
                       <img
                         src={item.url}
                         alt={item.name}
+                        onError={() => {
+                          setItems((prev) => prev.filter((i) => i.url !== item.url));
+                          if (selected?.url === item.url) setSelected(null);
+                        }}
                         className="h-full w-full object-cover transition group-hover:scale-105"
                       />
                     )}
@@ -387,6 +427,10 @@ export default function AdminMediaPage() {
                     <img
                       src={selected.url}
                       alt={selected.name}
+                      onError={() => {
+                        setItems((prev) => prev.filter((i) => i.url !== selected.url));
+                        setSelected(null);
+                      }}
                       className="h-full w-full object-contain"
                     />
                   )}

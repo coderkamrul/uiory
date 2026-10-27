@@ -74,7 +74,7 @@ export default function MediaUpload({
   }
 
   return (
-    <div>
+    <div className="w-full min-w-0 max-w-full">
       <input
         ref={inputRef}
         type="file"
@@ -88,8 +88,8 @@ export default function MediaUpload({
       />
 
       {value ? (
-        <div>
-          <div className="relative aspect-[4/3] overflow-hidden rounded-[14px] bg-[#1c1c1f]">
+        <div className="w-full min-w-0 max-w-full overflow-hidden">
+          <div className="relative aspect-[4/3] w-full max-w-full overflow-hidden rounded-[14px] bg-[#1c1c1f]">
             {value.type === "video" ? (
               <video
                 src={value.url}
@@ -127,12 +127,9 @@ export default function MediaUpload({
               <Trash2 size={13} /> Remove
             </button>
           </div>
-          <p className="mt-2 truncate font-mono text-[11px] text-ink-3" title={value.url}>
-            {value.url}
-          </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="w-full min-w-0 max-w-full space-y-2">
           <div
             role="button"
             tabIndex={0}

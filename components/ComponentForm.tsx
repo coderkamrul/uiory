@@ -64,8 +64,14 @@ export default function ComponentForm({
     CATEGORIES.filter((c) => c !== "All")
   );
   useEffect(() => {
-    listCategories().then(setCatOptions);
-  }, []);
+    listCategories().then((cats) => {
+      const filtered = cats.filter((c) => c !== "All");
+      setCatOptions(filtered);
+      if (!initial && filtered.length > 0 && !filtered.includes(category)) {
+        setCategory(filtered[0]);
+      }
+    });
+  }, [category, initial]);
   const [media, setMedia] = useState<MediaValue | null>(
     initial?.mediaUrl
       ? { url: initial.mediaUrl, type: initial.mediaType ?? "image" }
@@ -113,8 +119,8 @@ export default function ComponentForm({
       createdAt: initial?.createdAt ?? new Date().toISOString().slice(0, 10),
       pro,
       copies: initial?.copies ?? 0,
-      mediaUrl: media?.url,
-      mediaType: media?.type,
+      mediaUrl: type === "compare" ? (va.mediaUrl || vb.mediaUrl || media?.url) : media?.url,
+      mediaType: type === "compare" ? (va.mediaType || vb.mediaType || media?.type) : media?.type,
       hue: initial?.hue ?? 262,
       pattern: initial?.pattern ?? "card",
       variants: type === "compare" ? [va, vb] : undefined,
@@ -178,7 +184,7 @@ export default function ComponentForm({
     set: (v: BuildVariant) => void,
     heading: string
   ) => (
-    <div className="rounded-2xl border border-line bg-white/[0.02] p-5">
+    <div className="rounded-2xl border border-line bg-white/[0.02] p-5 min-w-0 max-w-full overflow-hidden">
       <div className="flex items-center justify-between">
         <h4 className="text-[14px] font-bold text-white">{heading}</h4>
         <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold text-white">
@@ -186,50 +192,32 @@ export default function ComponentForm({
         </span>
       </div>
 
-      {/* Media uploader for this variant */}
+      {/* Builder / tool input */}
       <div className="mt-4">
+        <label className={label}>Builder / tool *</label>
+        <input
+          className={input}
+          value={v.tool}
+          onChange={(e) => set({ ...v, tool: e.target.value })}
+          placeholder="e.g. Muse AI, Claude, v0, Cursor"
+        />
+      </div>
+
+      {/* Media uploader for this variant */}
+      <div className="mt-4 min-w-0 max-w-full">
         <label className={label}>Preview Media for {heading} (Image or Video) *</label>
         <MediaUpload
           value={v.mediaUrl ? { url: v.mediaUrl, type: v.mediaType ?? "image" } : null}
           onChange={(m) => set({ ...v, mediaUrl: m?.url, mediaType: m?.type })}
         />
       </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className={label}>Builder / tool</label>
-          <input className={input} value={v.tool} onChange={(e) => set({ ...v, tool: e.target.value })} placeholder="Muse AI" />
-        </div>
-        <div>
-          <label className={label}>Model</label>
-          <input className={input} value={v.model} onChange={(e) => set({ ...v, model: e.target.value })} placeholder="Muse Spark" />
-        </div>
-        <div>
-          <label className={label}>Time taken</label>
-          <input className={input} value={v.timeTaken} onChange={(e) => set({ ...v, timeTaken: e.target.value })} placeholder="≈ 25 min" />
-        </div>
-      </div>
-      <div className="mt-3">
-        <label className={label}>Verdict (one line)</label>
-        <input className={input} value={v.verdict} onChange={(e) => set({ ...v, verdict: e.target.value })} placeholder="Closest to the reference motion." />
-      </div>
-      <div className="mt-3">
-        <label className={label}>Strengths (one per line)</label>
-        <textarea
-          className={input}
-          rows={3}
-          value={v.strengths.join("\n")}
-          onChange={(e) => set({ ...v, strengths: e.target.value.split("\n") })}
-          placeholder={"Nailed the physics\nClean single file"}
-        />
-      </div>
     </div>
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 min-w-0 max-w-full">
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px] min-w-0">
+        <div className="space-y-6 min-w-0">
 
           {/* Type Selector */}
           <section className="rounded-2xl border border-[#222226] bg-[#121215] p-5 shadow-sm">
@@ -284,19 +272,18 @@ export default function ComponentForm({
                 />
               </div>
               <div>
-                <label className={label}>Category</label>
-                <input
-                  className={input}
+                <label className={label}>Category *</label>
+                <select
+                  className={`${input} cursor-pointer [&>option]:bg-[#18181b] [&>option]:text-white`}
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  list="cf-category-options"
-                  placeholder="e.g. Hero, Card, Navbar"
-                />
-                <datalist id="cf-category-options">
+                >
                   {catOptions.map((c) => (
-                    <option key={c} value={c} />
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
                   ))}
-                </datalist>
+                </select>
               </div>
               <div className="sm:col-span-2">
                 <label className={label}>Tech & Frameworks (comma separated)</label>
@@ -516,9 +503,9 @@ export default function ComponentForm({
 
         {/* builders */}
         {type === "compare" && (
-          <section className="rounded-[18px] border border-line bg-panel p-5">
+          <section className="rounded-[18px] border border-line bg-panel p-5 min-w-0 max-w-full overflow-hidden">
             <h3 className={sectionTitle}>The two builds</h3>
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 space-y-4 min-w-0">
               {variantEditor(va, setVa, "Builder A")}
               {variantEditor(vb, setVb, "Builder B")}
             </div>
@@ -577,7 +564,7 @@ export default function ComponentForm({
         </div>
 
         {/* Right sidebar matching Screenshot 1 with publish info, quick links, and guidelines */}
-        <aside className="space-y-6 lg:sticky lg:top-[90px] lg:self-start">
+        <aside className="space-y-6 lg:sticky lg:top-[90px] lg:self-start min-w-0 max-w-full">
           <section className="rounded-2xl border border-[#222226] bg-[#121215] p-5 shadow-sm">
             <h4 className="text-sm font-bold text-white">Publish Action</h4>
             <p className="mt-1 text-xs text-ink-3">
@@ -600,16 +587,18 @@ export default function ComponentForm({
             </div>
           </section>
 
-          {/* Preview Media placed after Publish Action card as requested */}
-          <section className="rounded-2xl border border-[#222226] bg-[#121215] p-5 shadow-sm">
-            <h4 className="text-sm font-bold text-white">Preview Media</h4>
-            <p className="mt-1 text-xs text-ink-3">
-              Upload recording or screenshot (JPG, PNG, WebP, MP4, WebM up to 50MB).
-            </p>
-            <div className="mt-4">
-              <MediaUpload value={media} onChange={setMedia} />
-            </div>
-          </section>
+          {/* Preview Media placed after Publish Action card - only needed for single components, compare components have media per builder */}
+          {type !== "compare" && (
+            <section className="rounded-2xl border border-[#222226] bg-[#121215] p-5 shadow-sm min-w-0 max-w-full overflow-hidden">
+              <h4 className="text-sm font-bold text-white">Preview Media</h4>
+              <p className="mt-1 text-xs text-ink-3">
+                Upload recording or screenshot (JPG, PNG, WebP, MP4, WebM up to 50MB).
+              </p>
+              <div className="mt-4 min-w-0">
+                <MediaUpload value={media} onChange={setMedia} />
+              </div>
+            </section>
+          )}
 
           <section className="rounded-2xl border border-[#222226] bg-[#121215] p-5 shadow-sm">
             <h4 className="text-xs font-bold uppercase tracking-wider text-ink-3">

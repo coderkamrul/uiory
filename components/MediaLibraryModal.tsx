@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { supabase, MEDIA_BUCKET, SUPABASE_CONFIGURED } from "@/lib/supabase";
-import { listComponents } from "@/lib/db";
+import { supabase, MEDIA_BUCKET, SUPABASE_CONFIGURED, deleteMediaFromStorage } from "@/lib/supabase";
+import { listComponents, updateComponent } from "@/lib/db";
 import {
   Check,
   Film,
   Image as ImageIcon,
   Loader2,
   Search,
+  Trash2,
   UploadCloud,
   X,
 } from "lucide-react";
@@ -42,7 +43,50 @@ export default function MediaLibraryModal({
   const [selected, setSelected] = useState<MediaFileItem | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleDelete(item: MediaFileItem) {
+    if (!confirm(`Delete "${item.name}" from storage?`)) return;
+    setDeleting(true);
+    try {
+      if (SUPABASE_CONFIGURED) {
+        await deleteMediaFromStorage(item.url, item.name);
+        try {
+          const comps = await listComponents();
+          for (const comp of comps) {
+            let changed = false;
+            const updated = { ...comp };
+            if (comp.mediaUrl === item.url || comp.imageUrl === item.url) {
+              updated.mediaUrl = undefined;
+              updated.imageUrl = undefined;
+              changed = true;
+            }
+            if (comp.variants) {
+              const [v0, v1] = comp.variants;
+              const newV0 = v0.mediaUrl === item.url ? { ...v0, mediaUrl: undefined } : v0;
+              const newV1 = v1.mediaUrl === item.url ? { ...v1, mediaUrl: undefined } : v1;
+              if (newV0 !== v0 || newV1 !== v1) {
+                updated.variants = [newV0, newV1];
+                changed = true;
+              }
+            }
+            if (changed) {
+              await updateComponent(comp.slug, updated);
+            }
+          }
+        } catch (dbErr) {
+          console.warn("Component cleanup warning:", dbErr);
+        }
+      }
+      setItems((prev) => prev.filter((i) => i.url !== item.url));
+      if (selected?.url === item.url) setSelected(null);
+    } catch (err) {
+      alert(`Failed to delete file from storage: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     if (!open) {
@@ -97,6 +141,11 @@ export default function MediaLibraryModal({
       for (const comp of comps) {
         const url = comp.mediaUrl || comp.imageUrl;
         if (url && !mediaMap.has(url)) {
+          // If this URL is in our Supabase storage bucket, but was not in the storage.list(),
+          // it means the file was deleted from storage! Skip it so ghost/broken cards never appear.
+          if (url.includes(`/${MEDIA_BUCKET}/`)) {
+            continue;
+          }
           const isVid =
             comp.mediaType === "video" ||
             url.endsWith(".mp4") ||
@@ -299,6 +348,10 @@ export default function MediaLibraryModal({
                           <img
                             src={item.url}
                             alt={item.name}
+                            onError={() => {
+                              setItems((prev) => prev.filter((i) => i.url !== item.url));
+                              if (selected?.url === item.url) setSelected(null);
+                            }}
                             className="h-full w-full object-cover"
                             loading="lazy"
                           />
@@ -333,7 +386,17 @@ export default function MediaLibraryModal({
                   <p className="text-xs text-ink-3">Click any file to select it.</p>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                {selected && (
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(selected)}
+                    disabled={deleting}
+                    className="cursor-pointer inline-flex items-center gap-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 px-3.5 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-50"
+                  >
+                    <Trash2 size={12} /> {deleting ? "Deleting…" : "Delete"}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={onClose}

@@ -22,6 +22,45 @@ export const supabase: SupabaseClient = createClient(
   KEY ?? "placeholder-key"
 );
 
+/**
+ * Extracts storage relative object path from a Supabase Storage public URL or filename.
+ */
+export function getStoragePath(urlOrName: string, fallbackName?: string): string {
+  if (!urlOrName) return fallbackName || "";
+  try {
+    const urlObj = new URL(urlOrName);
+    const pathname = decodeURIComponent(urlObj.pathname);
+    const marker = `/${MEDIA_BUCKET}/`;
+    const idx = pathname.indexOf(marker);
+    if (idx !== -1) {
+      return pathname.substring(idx + marker.length);
+    }
+  } catch {
+    // Not a full URL, fallback
+  }
+  if (fallbackName && !fallbackName.startsWith("http")) {
+    return fallbackName;
+  }
+  const clean = urlOrName.split("?")[0].split("#")[0];
+  return clean.split("/").pop() || fallbackName || "";
+}
+
+/**
+ * Deletes a file from the public Supabase storage bucket.
+ */
+export async function deleteMediaFromStorage(
+  urlOrPath: string,
+  fallbackName?: string
+): Promise<void> {
+  if (!SUPABASE_CONFIGURED) return;
+  const path = getStoragePath(urlOrPath, fallbackName);
+  if (!path) return;
+  const { error } = await supabase.storage.from(MEDIA_BUCKET).remove([path]);
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 export interface Profile {
   id: string;
   email: string;
