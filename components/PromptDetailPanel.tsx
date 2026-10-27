@@ -206,11 +206,11 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
             <div className="flex flex-col overflow-hidden rounded-[24px] bg-[#292929] md:flex-row md:items-stretch">
               {/* preview: bounded max-height, object-contain with ambient blurred backdrop */}
               <div className="w-full md:flex-1 md:min-w-0">
-                <div className="relative w-full overflow-hidden bg-[#18181b] flex items-center justify-center min-h-[380px] sm:min-h-[440px] md:min-h-[480px] md:h-full">
+                <div className="relative w-full overflow-hidden bg-[#18181b] flex items-center justify-center min-h-fit sm:min-h-[440px] md:min-h-[480px] md:h-full">
                   {backBtnOverlay}
 
                   {isCompare && item.variants && item.variants.length >= 2 ? (
-                    <div className="relative w-full h-full min-h-[400px] sm:min-h-[440px] md:min-h-[480px] flex items-center justify-center overflow-hidden">
+                    <div className="relative w-full h-full min-h-fit sm:min-h-[440px] md:min-h-[480px] flex items-center justify-center overflow-hidden">
                       {/* Ambient blurred backdrop — left half uses before image, right half uses after image */}
                       <div className="pointer-events-none absolute inset-0 overflow-hidden select-none flex">
                         {/* Before (left half) */}
@@ -231,7 +231,7 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40" />
                       </div>
                       {/* Foreground compare slider */}
-                      <div className="relative z-10 w-full h-full min-h-[400px] sm:min-h-[440px] md:min-h-[480px] flex items-center justify-center">
+                      <div className="relative z-10 w-full h-full min-h-fit sm:min-h-[440px] md:min-h-[480px] flex items-center justify-center">
                         <DetailCompare
                           beforeUrl={variant?.mediaUrl || ""}
                           beforeType={variant?.mediaType || "image"}
@@ -248,7 +248,7 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
                         controls={false}
                       />
                     ) : (
-                      <div className="relative flex h-full max-h-[78vh] w-full min-h-[380px] sm:min-h-[440px] md:min-h-[480px] items-center justify-center overflow-hidden">
+                      <div className="relative flex h-full max-h-[78vh] w-full min-h-fit sm:min-h-[440px] md:min-h-[480px] items-center justify-center overflow-hidden">
                         {/* Ambient blurred backdrop that dynamically fits any aspect ratio */}
                         <div className="pointer-events-none absolute inset-0 overflow-hidden select-none">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
