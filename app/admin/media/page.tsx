@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { listComponents } from "@/lib/db";
+import { Component as Loader } from "@/components/ui/ripple-pulse-loader";
 
 interface MediaItem {
   name: string;
@@ -309,9 +310,7 @@ export default function AdminMediaPage() {
         {/* Media Grid */}
         <div>
           {loading ? (
-            <div className="flex h-64 items-center justify-center gap-2 text-xs text-ink-3">
-              <Loader2 size={16} className="animate-spin text-white" /> Loading media…
-            </div>
+            <Loader />
           ) : filtered.length === 0 ? (
             <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-[#222226] bg-[#121215] p-8 text-center">
               <ImageIcon size={32} className="text-ink-3/40 mb-2" />

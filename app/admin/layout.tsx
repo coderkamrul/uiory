@@ -14,16 +14,34 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  Settings,
+  UserRound,
   X,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import AdminGuard from "@/components/AdminGuard";
+import {
+  fetchProfile,
+  supabase,
+  SUPABASE_CONFIGURED,
+  type Profile,
+} from "@/lib/supabase";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
+
+  useEffect(() => {
+    (async () => {
+      if (!SUPABASE_CONFIGURED) return setProfile(null);
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      setProfile(await fetchProfile(data.session.user.id));
+    })();
+  }, []);
 
   useEffect(() => {
     try {
@@ -60,9 +78,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     pathname?.startsWith("/admin/new") ||
     (pathname?.startsWith("/admin/") &&
       pathname !== "/admin/media" &&
-      pathname !== "/admin/inquiries");
+      pathname !== "/admin/inquiries" &&
+      pathname !== "/admin/settings");
   const isMedia = pathname === "/admin/media";
   const isInquiries = pathname === "/admin/inquiries";
+  const isSettings = pathname === "/admin/settings";
 
   const mainNavItems = [
     {
@@ -91,6 +111,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       icon: Mail,
       active: isInquiries,
       badge: "Inbox",
+    },
+    {
+      href: "/admin/settings",
+      label: "Settings",
+      icon: Settings,
+      active: isSettings,
     },
   ];
 
@@ -274,43 +300,59 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
           {/* Bottom Profile Bar */}
           <div className="border-t border-[#1a1a20] pt-3">
-            <div
-              className={`flex items-center ${
-                collapsed ? "flex-col gap-2 justify-center" : "justify-between"
-              } rounded-xl bg-white/[0.02] p-2 ring-1 ring-white/5`}
-            >
-              <div className="flex items-center gap-2.5 min-w-0" title="Studio Admin (admin@uiory.com)">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-600 font-bold text-white text-[11px] shadow">
-                  AD
-                </div>
-                {!collapsed && (
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold text-zinc-200 leading-tight">
-                      Studio Admin
-                    </p>
-                    <p className="truncate text-[10px] text-zinc-500 leading-tight">
-                      admin@uiory.com
-                    </p>
+            {profile === undefined || profile === null ? (
+              <div className="flex items-center justify-between rounded-xl bg-white/[0.02] p-2 ring-1 ring-white/5">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-600 font-bold text-white text-[11px] shadow">
+                    ?
                   </div>
-                )}
+                </div>
               </div>
-
-              {/* Quick Sign Out Action */}
-              <button
-                type="button"
-                onClick={() => {
-                  closeMobileSidebar();
-                  if (typeof window !== "undefined") {
-                    sessionStorage.removeItem("cf_admin_auth");
-                    window.location.href = "/";
-                  }
-                }}
-                className="cursor-pointer rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-rose-300 transition"
-                title="Sign out"
+            ) : (
+              <div
+                className={`flex items-center ${
+                  collapsed ? "flex-col gap-2 justify-center" : "justify-between"
+                } rounded-xl bg-white/[0.02] p-2 ring-1 ring-white/5`}
               >
-                <LogOut size={14} />
-              </button>
-            </div>
+                <div className="flex items-center gap-2.5 min-w-0" title={`${profile.name} (${profile.email})`}>
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-600 font-bold text-white text-[11px] shadow">
+                    {(profile.name || profile.email).charAt(0).toUpperCase()}
+                  </div>
+                  {!collapsed && (
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-zinc-200 leading-tight">
+                        {profile.name}
+                      </p>
+                      <p className="truncate text-[10px] text-zinc-500 leading-tight">
+                        {profile.email}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/admin/settings"
+                    className="cursor-pointer rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-white transition"
+                    title="Settings"
+                  >
+                    <Settings size={14} />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeMobileSidebar();
+                      supabase.auth.signOut();
+                      router.push("/");
+                    }}
+                    className="cursor-pointer rounded-lg p-1.5 text-zinc-400 hover:bg-white/[0.06] hover:text-rose-300 transition"
+                    title="Sign out"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </aside>
 

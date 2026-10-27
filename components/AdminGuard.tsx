@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { fetchProfile, supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { Component as Loader } from "@/components/ui/ripple-pulse-loader";
 
 /**
  * Client-side gate for /admin. Signed-out visitors go to /login;
@@ -30,7 +31,11 @@ export default function AdminGuard({ children }: { children: ReactNode }) {
   }, [router]);
 
   if (!ok) {
-    return <p className="text-sm text-ink-3">Checking access…</p>;
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader />
+      </div>
+    );
   }
   return <>{children}</>;
 }

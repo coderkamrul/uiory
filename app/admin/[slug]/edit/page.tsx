@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import type { ShowcaseItem } from "@/lib/data";
 import { getComponent, updateComponent } from "@/lib/db";
 import ComponentForm from "@/components/ComponentForm";
+import { Component as Loader } from "@/components/ui/ripple-pulse-loader";
 
 export default function AdminEditPage() {
   const params = useParams<{ slug: string }>();
@@ -16,7 +17,7 @@ export default function AdminEditPage() {
   }, [params.slug]);
 
   if (item === undefined)
-    return <p className="text-sm text-ink-3">Loading component…</p>;
+    return <Loader />;
   if (item === null)
     return (
       <p className="text-sm text-ink-2">

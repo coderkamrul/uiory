@@ -28,6 +28,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import { Component as Loader } from "@/components/ui/ripple-pulse-loader";
 
 export default function AdminInquiriesPage() {
   const [submissions, setSubmissions] = useState<ContactSubmission[]>([]);
@@ -107,10 +108,7 @@ export default function AdminInquiriesPage() {
   if (!loaded) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-purple-500" />
-          <p className="text-xs text-zinc-500 font-mono">Loading inquiries…</p>
-        </div>
+        <Loader />
       </div>
     );
   }

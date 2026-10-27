@@ -12,6 +12,7 @@ import {
   ensureCategory,
 } from "@/lib/db";
 import PreviewArt from "@/components/PreviewArt";
+import { Component as Loader } from "@/components/ui/ripple-pulse-loader";
 import {
   AlertTriangle,
   Crown,
@@ -297,7 +298,7 @@ export default function AdminComponentsPage() {
           {/* Components List */}
           <div className="overflow-hidden rounded-2xl border border-[#222226] bg-[#121215] shadow-sm">
             {!loaded ? (
-              <p className="p-12 text-center text-xs text-ink-3">Loading components…</p>
+              <Loader />
             ) : shown.length === 0 ? (
               <div className="p-12 text-center">
                 <p className="text-xs text-ink-3">

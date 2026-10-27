@@ -45,6 +45,25 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
   }
 }
 
+export async function updateProfile(
+  userId: string,
+  updates: Partial<Pick<Profile, "name">>
+): Promise<Profile | null> {
+  if (!SUPABASE_CONFIGURED) return null;
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("id", userId)
+      .select("*")
+      .maybeSingle();
+    if (error) return null;
+    return (data as Profile) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Where a signed-in user lands: admins to /admin, everyone else to /dashboard. */
 export function homeForRole(profile: Profile | null): string {
   return profile?.role === "admin" ? "/admin" : "/dashboard";

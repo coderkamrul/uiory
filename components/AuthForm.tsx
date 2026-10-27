@@ -92,9 +92,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
           {mode === "signup" ? "Create your account" : "Welcome back"}
         </h1>
         <p className="mt-1.5 text-sm leading-relaxed text-ink-2">
-          {mode === "signup"
-            ? "The first account created becomes the admin. Later accounts are normal users."
-            : "Sign in to reach your dashboard."}
+          Sign in to reach your dashboard.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">

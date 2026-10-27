@@ -116,27 +116,35 @@ export default function Header() {
             : "border-b border-transparent bg-paper"
         }`}
       >
-        <div className="flex w-full items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+        <div className="flex w-full items-center px-4 py-3 sm:px-6 sm:py-4 gap-4">
           {/* Logo */}
           <Link href="/" className="flex shrink-0 items-center gap-2">
-            <img src="/logo-black-bg.png" alt="uiory" className="h-7 w-auto sm:h-8" />
+            <img src="/logo-black-bg.png" alt="uiory" className="h-8 w-auto sm:h-9" />
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="mr-auto ml-2 hidden min-w-0 flex-nowrap items-center gap-1 overflow-x-auto lg:flex">
-            {NAV.map((n) => (
-              <Link
-                key={n.href}
-                href={n.href}
-                className="flex items-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-white/60 transition-colors hover:text-white sm:px-4"
-              >
-                {n.label}
-              </Link>
-            ))}
+          {/* Desktop nav — centered */}
+          <nav className="flex-1 hidden min-w-0 flex-nowrap items-center justify-center gap-1 overflow-x-auto lg:flex">
+            {NAV.map((n) => {
+              const isActive =
+                pathname === n.href ||
+                pathname === n.href.replace("#", "") ||
+                (n.href === "/#showcase" && pathname === "/");
+              return (
+                <Link
+                  key={n.href}
+                  href={n.href}
+                  className={`flex items-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:px-4 ${
+                    isActive ? "text-white bg-white/[0.08]" : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  {n.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right side */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="ml-auto flex items-center gap-1 sm:gap-2">
             {/* Avatar dropdown — always visible when logged in */}
             {profile ? (
               <div className="relative">

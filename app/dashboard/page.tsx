@@ -10,6 +10,7 @@ import {
   type Profile,
 } from "@/lib/supabase";
 import { CalendarDays, LayoutGrid, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react";
+import { Component as Loader } from "@/components/ui/ripple-pulse-loader";
 
 /**
  * The normal-user dashboard. Deliberately simple for this version:
@@ -44,7 +45,7 @@ export default function UserDashboardPage() {
   if (profile === undefined) {
     return (
       <div className="mx-auto w-full max-w-[760px] px-5 pb-24 pt-[150px]">
-        <p className="text-sm text-ink-3">Loading your dashboard…</p>
+        <Loader className="mx-auto" />
       </div>
     );
   }
