@@ -83,15 +83,48 @@ export default function AutoCropVideo({
   }, [src]);
 
   if (crop) {
+    if (variant === "detail") {
+      return (
+        <div
+          className="relative w-full overflow-hidden bg-[#18181b] flex items-center justify-center min-h-[380px] sm:min-h-[440px] md:min-h-[480px]"
+          style={{ maxHeight: "82vh" }}
+        >
+          {/* Ambient blurred backdrop */}
+          <video
+            src={src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover scale-125 blur-3xl opacity-30 select-none"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40 pointer-events-none" />
+          {/* Crisp foreground video */}
+          <div
+            className="relative z-10 overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/10"
+            style={{ aspectRatio: String(crop.ar), maxHeight: "76vh" }}
+          >
+            <video
+              ref={(el) => { if (el) el.muted = true; }}
+              src={src}
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls={controls}
+              className="h-full w-full object-cover"
+              style={{ objectPosition: `50% ${crop.posY}%` }}
+            />
+          </div>
+          {overlay}
+        </div>
+      );
+    }
     return (
       <div
-        className={`relative w-full overflow-hidden bg-[#111113] ${
-          variant === "detail" ? "max-h-[82vh] flex items-center justify-center" : "bg-black"
-        }`}
-        style={{
-          aspectRatio: String(crop.ar),
-          maxHeight: variant === "detail" ? "82vh" : undefined,
-        }}
+        className="relative w-full overflow-hidden bg-black"
+        style={{ aspectRatio: String(crop.ar) }}
       >
         <video
           ref={(el) => {
@@ -103,9 +136,7 @@ export default function AutoCropVideo({
           loop
           playsInline
           controls={controls}
-          className={`absolute inset-0 h-full w-full ${
-            variant === "detail" ? "object-contain" : "object-cover"
-          }`}
+          className="absolute inset-0 h-full w-full object-cover"
           style={{ objectPosition: `50% ${crop.posY}%` }}
         />
         {overlay}
@@ -113,12 +144,39 @@ export default function AutoCropVideo({
     );
   }
 
+  /* No crop detected — render with ambient backdrop in detail mode */
+  if (variant === "detail") {
+    return (
+      <div className="relative w-full overflow-hidden bg-[#18181b] flex items-center justify-center min-h-[380px] sm:min-h-[440px] md:min-h-[480px] max-h-[82vh]">
+        {/* Ambient blurred backdrop */}
+        <video
+          src={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover scale-125 blur-3xl opacity-30 select-none"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40 pointer-events-none" />
+        {/* Crisp centered foreground video */}
+        <video
+          ref={(el) => { if (el) el.muted = true; }}
+          src={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          controls={controls}
+          className="relative z-10 block max-h-[76vh] w-auto max-w-full object-contain mx-auto rounded-xl shadow-2xl ring-1 ring-white/10"
+        />
+        {overlay}
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`relative w-full overflow-hidden bg-[#111113] ${
-        variant === "detail" ? "max-h-[82vh] flex items-center justify-center" : ""
-      }`}
-    >
+    <div className="relative w-full overflow-hidden bg-[#111113]">
       <video
         ref={(el) => {
           if (el) el.muted = true;
@@ -129,11 +187,7 @@ export default function AutoCropVideo({
         loop
         playsInline
         controls={controls}
-        className={`block w-full ${
-          variant === "detail"
-            ? "max-h-[82vh] w-auto max-w-full object-contain mx-auto"
-            : "h-auto"
-        }`}
+        className="block w-full h-auto"
       />
       {overlay}
     </div>

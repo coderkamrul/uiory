@@ -204,19 +204,41 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
             className="detail-card-fixed-width z-10 w-full lg:absolute lg:left-0 lg:top-0"
           >
             <div className="flex flex-col overflow-hidden rounded-[24px] bg-[#292929] md:flex-row md:items-stretch">
-              {/* preview: bounded max-height, object-contain, matching competitor style */}
+              {/* preview: bounded max-height, object-contain with ambient blurred backdrop */}
               <div className="w-full md:flex-1 md:min-w-0">
-                <div className="relative w-full overflow-hidden bg-[#303030] flex items-center justify-center">
+                <div className="relative w-full overflow-hidden bg-[#18181b] flex items-center justify-center min-h-[380px] sm:min-h-[440px] md:min-h-[480px] md:h-full">
                   {backBtnOverlay}
 
                   {isCompare && item.variants && item.variants.length >= 2 ? (
-                    <div className="relative w-full h-full min-h-[400px] flex items-center justify-center">
-                      <DetailCompare
-                        beforeUrl={variant?.mediaUrl || ""}
-                        beforeType={variant?.mediaType || "image"}
-                        afterUrl={item.variants[1]?.mediaUrl || ""}
-                        afterType={item.variants[1]?.mediaType || "image"}
-                      />
+                    <div className="relative w-full h-full min-h-[400px] sm:min-h-[440px] md:min-h-[480px] flex items-center justify-center overflow-hidden">
+                      {/* Ambient blurred backdrop — left half uses before image, right half uses after image */}
+                      <div className="pointer-events-none absolute inset-0 overflow-hidden select-none flex">
+                        {/* Before (left half) */}
+                        {item.variants[0]?.mediaUrl && (item.variants[0]?.mediaType === "video" || item.variants[0]?.mediaUrl.endsWith(".mp4")) ? (
+                          <video
+                            src={item.variants[0].mediaUrl}
+                            autoPlay muted loop playsInline aria-hidden="true"
+                            className="absolute inset-0 h-full w-full object-cover scale-125 blur-3xl opacity-30"
+                          />
+                        ) : item.variants[0]?.mediaUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.variants[0].mediaUrl}
+                            alt="" aria-hidden="true"
+                            className="absolute inset-0 h-full w-full object-cover scale-125 blur-3xl opacity-30"
+                          />
+                        ) : null}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40" />
+                      </div>
+                      {/* Foreground compare slider */}
+                      <div className="relative z-10 w-full h-full min-h-[400px] sm:min-h-[440px] md:min-h-[480px] flex items-center justify-center">
+                        <DetailCompare
+                          beforeUrl={variant?.mediaUrl || ""}
+                          beforeType={variant?.mediaType || "image"}
+                          afterUrl={item.variants[1]?.mediaUrl || ""}
+                          afterType={item.variants[1]?.mediaType || "image"}
+                        />
+                      </div>
                     </div>
                   ) : !isCompare && (item.mediaUrl ?? item.imageUrl) ? (
                     (item.mediaType === "video" && item.mediaUrl) || (!item.mediaUrl && item.imageUrl?.endsWith(".mp4")) ? (
@@ -226,13 +248,28 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
                         controls={false}
                       />
                     ) : (
-                      <div className="relative flex h-full max-h-[78vh] w-full items-center justify-center overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.mediaUrl ?? item.imageUrl}
-                          alt={item.title}
-                          className="block h-auto w-full max-h-[78vh] object-contain transition-opacity duration-300 opacity-100"
-                        />
+                      <div className="relative flex h-full max-h-[78vh] w-full min-h-[380px] sm:min-h-[440px] md:min-h-[480px] items-center justify-center overflow-hidden">
+                        {/* Ambient blurred backdrop that dynamically fits any aspect ratio */}
+                        <div className="pointer-events-none absolute inset-0 overflow-hidden select-none">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.mediaUrl ?? item.imageUrl}
+                            alt=""
+                            aria-hidden="true"
+                            className="absolute inset-0 h-full w-full object-cover scale-125 blur-3xl opacity-35 transition-opacity duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40" />
+                        </div>
+
+                        {/* Crisp centered foreground media */}
+                        <div className="relative z-10 flex h-full max-h-[78vh] w-full items-center justify-center">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.mediaUrl ?? item.imageUrl}
+                            alt={item.title}
+                            className="block h-auto max-h-[78vh] w-auto max-w-full object-contain"
+                          />
+                        </div>
                       </div>
                     )
                   ) : (

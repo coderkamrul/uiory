@@ -18,7 +18,7 @@ const MediaContent = ({ src, type, className }: ComparisonMediaProps) => {
         muted
         loop
         playsInline
-        className={`w-full h-full object-contain ${className}`}
+        className={`w-full h-full object-fill ${className}`}
       />
     );
   }
@@ -26,7 +26,7 @@ const MediaContent = ({ src, type, className }: ComparisonMediaProps) => {
     <img
       src={src}
       alt="comparison"
-      className={`w-full h-full object-contain ${className}`}
+      className={`w-full h-full object-fill ${className}`}
     />
   );
 };

@@ -114,10 +114,17 @@ export default function MediaUpload({
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setLibraryOpen(true)}
+              onClick={() => inputRef.current?.click()}
               className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-white/[0.04] px-4 py-2 text-[12.5px] font-medium text-ink-2 transition hover:bg-white/[0.08] hover:text-white"
             >
               <RefreshCw size={13} /> Replace
+            </button>
+            <button
+              type="button"
+              onClick={() => setLibraryOpen(true)}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-white/[0.04] px-4 py-2 text-[12.5px] font-medium text-ink-2 transition hover:bg-white/[0.08] hover:text-white"
+            >
+              <FolderOpen size={13} /> Library
             </button>
             <button
               type="button"
