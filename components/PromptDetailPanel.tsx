@@ -49,6 +49,15 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
+  const scrollToTop = useCallback(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
   const handleBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {
       router.back();
@@ -68,17 +77,25 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
   useEffect(() => {
     setActive(0);
     setVisibleCount(15);
+    scrollToTop();
     getComponent(slug).then((res) => {
       setItem(res);
       if (res) {
         setLikeCount(res.copies ?? 0);
         hasUserLiked(res.slug).then(setLiked);
       }
+      requestAnimationFrame(() => {
+        scrollToTop();
+      });
     });
     listComponents().then((rows) =>
       setOthers(rows.filter((i) => i.slug !== slug))
     );
-  }, [slug]);
+  }, [slug, scrollToTop]);
+
+  useLayoutEffect(() => {
+    scrollToTop();
+  }, [slug, scrollToTop]);
 
   /* the overlay owns the scroll while it is open */
   useEffect(() => {
@@ -602,7 +619,12 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
                   />
                 )}
                 {col.map((it) => (
-                  <ShowcaseCard key={it.slug} item={it} bare />
+                  <ShowcaseCard
+                    key={it.slug}
+                    item={it}
+                    bare
+                    onClick={scrollToTop}
+                  />
                 ))}
               </div>
             ))}

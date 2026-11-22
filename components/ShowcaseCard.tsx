@@ -28,9 +28,11 @@ const ASPECT: Record<ShowcaseItem["pattern"], string> = {
 export default function ShowcaseCard({
   item,
   bare = false,
+  onClick,
 }: {
   item: ShowcaseItem;
   bare?: boolean;
+  onClick?: () => void;
 }) {
   const isCompare = item.type === "compare" && item.variants;
   const mediaSrc = !isCompare ? item.mediaUrl ?? item.imageUrl : undefined;
@@ -46,20 +48,9 @@ export default function ShowcaseCard({
   const compareVideoBRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (isHovered) {
-      compareVideoARef.current?.play().catch(() => {});
-      compareVideoBRef.current?.play().catch(() => {});
-    } else {
-      if (compareVideoARef.current) {
-        compareVideoARef.current.pause();
-        compareVideoARef.current.currentTime = 0;
-      }
-      if (compareVideoBRef.current) {
-        compareVideoBRef.current.pause();
-        compareVideoBRef.current.currentTime = 0;
-      }
-    }
-  }, [isHovered]);
+    compareVideoARef.current?.play().catch(() => {});
+    compareVideoBRef.current?.play().catch(() => {});
+  }, []);
 
   const [likes, setLikes] = useState(item.copies ?? 0);
   const [liked, setLiked] = useState(false);
@@ -130,6 +121,7 @@ export default function ShowcaseCard({
     <Link
       href={`/?prompt=${item.slug}`}
       className="group block break-inside-avoid"
+      onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -138,7 +130,7 @@ export default function ShowcaseCard({
           <div className="relative mb-3 w-full shrink-0 overflow-hidden rounded-[calc(1rem+4px)] bg-[#1c1c1f]">
             {heartButton}
             {isVideoMedia ? (
-              <AutoCropVideo src={mediaSrc} variant="card" isHovered={isHovered} />
+              <AutoCropVideo src={mediaSrc} variant="card" />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={mediaSrc} alt={item.title} className="block h-auto w-full" />
@@ -158,16 +150,11 @@ export default function ShowcaseCard({
                     <video
                       ref={compareVideoARef}
                       src={item.variants[0].mediaUrl}
+                      autoPlay
                       muted
                       loop
                       playsInline
-                      preload="metadata"
-                      onPlay={(e) => {
-                        if (!isHovered) {
-                          e.currentTarget.pause();
-                          e.currentTarget.currentTime = 0;
-                        }
-                      }}
+                      preload="auto"
                       className="absolute inset-y-0 left-0 h-full w-[200%] max-w-none object-cover pointer-events-none"
                     />
                   ) : (
@@ -195,16 +182,11 @@ export default function ShowcaseCard({
                     <video
                       ref={compareVideoBRef}
                       src={item.variants[1].mediaUrl}
+                      autoPlay
                       muted
                       loop
                       playsInline
-                      preload="metadata"
-                      onPlay={(e) => {
-                        if (!isHovered) {
-                          e.currentTarget.pause();
-                          e.currentTarget.currentTime = 0;
-                        }
-                      }}
+                      preload="auto"
                       className="absolute inset-y-0 right-0 h-full w-[200%] max-w-none object-cover pointer-events-none"
                     />
                   ) : (

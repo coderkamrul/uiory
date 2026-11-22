@@ -4,8 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /**
  * A video that hides black bars baked into the recording itself.
- * For cards (variant="card"): ONLY plays when hovered, stays paused on frame 0 otherwise.
- * For details (variant="detail"): autoplays with ambient backdrop.
+ * Automatically plays on load (muted, loop, playsInline).
  */
 export default function AutoCropVideo({
   src,
@@ -22,24 +21,16 @@ export default function AutoCropVideo({
   overlay?: ReactNode;
 }) {
   const [crop, setCrop] = useState<{ ar: number; posY: number } | null>(null);
-  const [internalHovered, setInternalHovered] = useState(false);
-  const isHovered = externalHovered ?? internalHovered;
   const cardVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Strictly enforce hover-to-play for card variant
+  // Play immediately after component loads
   useEffect(() => {
     const video = cardVideoRef.current;
-    if (!video || variant !== "card") return;
+    if (!video) return;
     video.muted = true;
     video.playsInline = true;
-
-    if (isHovered) {
-      video.play().catch(() => {});
-    } else {
-      video.pause();
-      video.currentTime = 0;
-    }
-  }, [isHovered, variant, src, crop]);
+    video.play().catch(() => {});
+  }, [src, crop]);
 
   useEffect(() => {
     setCrop(null);
@@ -93,29 +84,22 @@ export default function AutoCropVideo({
     };
   }, [src]);
 
-  // CARD VARIANT (Home / Showcase Page): ONLY plays on hover, strictly paused on frame 0 otherwise
+  // CARD VARIANT (Home / Showcase Page): Autoplays on load
   if (variant === "card") {
     return (
       <div
         className="relative w-full overflow-hidden"
         style={crop ? { aspectRatio: String(crop.ar), backgroundColor: "#000" } : { backgroundColor: "#111113" }}
-        onMouseEnter={() => setInternalHovered(true)}
-        onMouseLeave={() => setInternalHovered(false)}
       >
         <video
           ref={cardVideoRef}
           src={src}
+          autoPlay
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="auto"
           controls={controls}
-          onPlay={(e) => {
-            if (!isHovered) {
-              e.currentTarget.pause();
-              e.currentTarget.currentTime = 0;
-            }
-          }}
           className={crop ? "absolute inset-0 h-full w-full object-cover" : "block w-full h-auto"}
           style={crop ? { objectPosition: `50% ${crop.posY}%` } : undefined}
         />

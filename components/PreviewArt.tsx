@@ -24,16 +24,8 @@ export default function PreviewArt({
     if (!video) return;
     video.muted = true;
     video.playsInline = true;
-
-    if (typeof isHovered === "boolean") {
-      if (isHovered) {
-        video.play().catch(() => {});
-      } else {
-        video.pause();
-        video.currentTime = 0;
-      }
-    }
-  }, [isHovered]);
+    video.play().catch(() => {});
+  }, [item.mediaUrl]);
 
   if (item.mediaUrl) {
     if (item.mediaType === "video" || item.mediaUrl.endsWith(".mp4") || item.mediaUrl.endsWith(".webm")) {
@@ -41,17 +33,11 @@ export default function PreviewArt({
         <video
           ref={videoRef}
           src={item.mediaUrl}
-          autoPlay={isHovered === undefined}
+          autoPlay
           muted
           loop
           playsInline
-          preload="metadata"
-          onPlay={(e) => {
-            if (typeof isHovered === "boolean" && !isHovered) {
-              e.currentTarget.pause();
-              e.currentTarget.currentTime = 0;
-            }
-          }}
+          preload="auto"
           className="absolute inset-0 h-full w-full object-cover"
         />
       );
