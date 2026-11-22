@@ -51,10 +51,16 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
 
   const scrollToTop = useCallback(() => {
     if (containerRef.current) {
-      containerRef.current.scrollTop = 0;
+      containerRef.current.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     }
     if (typeof window !== "undefined") {
-      window.scrollTo(0, 0);
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     }
   }, []);
 
@@ -84,17 +90,10 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
         setLikeCount(res.copies ?? 0);
         hasUserLiked(res.slug).then(setLiked);
       }
-      requestAnimationFrame(() => {
-        scrollToTop();
-      });
     });
     listComponents().then((rows) =>
       setOthers(rows.filter((i) => i.slug !== slug))
     );
-  }, [slug, scrollToTop]);
-
-  useLayoutEffect(() => {
-    scrollToTop();
   }, [slug, scrollToTop]);
 
   /* the overlay owns the scroll while it is open */
@@ -281,7 +280,7 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
   const sponsorsList: Sponsor[] = item.sponsors ?? [];
 
   return (
-    <div ref={containerRef} className="animate-fade-in fixed inset-0 z-40 overflow-y-auto bg-[#0a0a0a]">
+    <div ref={containerRef} className="animate-fade-in fixed inset-0 z-40 overflow-y-auto scroll-smooth bg-[#0a0a0a]">
       <div className="mx-auto w-full max-w-[1920px] px-4 pb-16 pt-[120px] sm:px-6">
         <div className="relative">
           {/* detail block: in flow on small screens, floating at

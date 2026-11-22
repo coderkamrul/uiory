@@ -120,6 +120,7 @@ export default function ShowcaseCard({
   return (
     <Link
       href={`/?prompt=${item.slug}`}
+      scroll={false}
       className="group block break-inside-avoid"
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
