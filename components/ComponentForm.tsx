@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   CATEGORIES,
   DEFAULT_SPONSORS,
+  parseSponsorFromUrl,
   slugify,
   type BuildVariant,
   type ShowcaseItem,
@@ -20,27 +21,7 @@ const input =
 const label = "mb-1.5 block text-[11px] font-bold uppercase tracking-[0.1em] text-ink-3";
 const sectionTitle = "text-[15px] font-bold text-white";
 
-function parseSponsorFromUrl(inputUrl: string): Sponsor {
-  let clean = inputUrl.trim();
-  if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
-    clean = "https://" + clean;
-  }
-  let domain = "";
-  try {
-    const u = new URL(clean);
-    domain = u.hostname.replace(/^www\./, "");
-  } catch {
-    domain = clean.replace(/^https?:\/\//, "").split("/")[0];
-  }
-  const brandPart = domain.split(".")[0];
-  const capitalized = brandPart ? brandPart.charAt(0).toUpperCase() + brandPart.slice(1) : "Partner";
-  return {
-    name: `Build in ${capitalized}`,
-    tagline: `Powered by ${capitalized}`,
-    url: clean,
-    logoUrl: domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : "",
-  };
-}
+
 
 function emptyVariant(tool: string): BuildVariant {
   return { tool, model: "", timeTaken: "", verdict: "", strengths: [], hue: 262 };
@@ -579,8 +560,8 @@ export default function ComponentForm({
                 {busy ? "Publishing…" : submitLabel}
               </button>
               <Link
-                href="/admin"
-                className="flex w-full items-center justify-center rounded-xl border border-line bg-white/[0.02] px-4 py-2.5 text-xs font-medium text-ink-2 hover:bg-white/[0.05] hover:text-white"
+                href="/admin/components"
+                className="cursor-pointer flex w-full items-center justify-center rounded-xl border border-line bg-white/[0.02] px-4 py-2.5 text-xs font-medium text-ink-2 hover:bg-white/[0.05] hover:text-white"
               >
                 Cancel & Return
               </Link>

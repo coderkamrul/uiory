@@ -33,8 +33,11 @@ export async function listCategories(): Promise<string[]> {
   if (!SUPABASE_CONFIGURED) {
     try {
       const raw = localStorage.getItem(CAT_KEY);
-      if (raw !== null) {
-        return JSON.parse(raw) as string[];
+      if (raw && raw.trim()) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       }
       localStorage.setItem(CAT_KEY, JSON.stringify(DEFAULT_CATS));
       return [...DEFAULT_CATS];
@@ -67,7 +70,13 @@ export async function ensureCategory(name: string): Promise<void> {
   if (!SUPABASE_CONFIGURED) {
     try {
       const raw = localStorage.getItem(CAT_KEY);
-      const saved: string[] = raw ? JSON.parse(raw) : [];
+      let saved: string[] = [];
+      if (raw && raw.trim()) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) saved = parsed;
+        } catch {}
+      }
       if (!saved.includes(clean) && !DEFAULT_CATS.includes(clean)) {
         saved.push(clean);
         localStorage.setItem(CAT_KEY, JSON.stringify(saved));
@@ -201,15 +210,34 @@ export async function updateCategory(
 }
 
 
-export async function listComponents(): Promise<ShowcaseItem[]> {
-  if (!SUPABASE_CONFIGURED) return loadUploads();
+// Exclude heavy code strings from bulk listing queries for optimal speed and lightweight payloads
+const LIST_COLUMNS =
+  "slug, title, category, type, description, tags, tech, prompt, author, created_at, featured, copies, image_url, media_url, media_type, hue, pattern, variants, sponsors";
+
+export async function listComponents(options?: {
+  limit?: number;
+  offset?: number;
+}): Promise<ShowcaseItem[]> {
+  if (!SUPABASE_CONFIGURED) {
+    const all = loadUploads();
+    if (options?.limit) {
+      const start = options.offset || 0;
+      return all.slice(start, start + options.limit);
+    }
+    return all;
+  }
   try {
-    const { data, error } = await supabase
+    let query: any = supabase
       .from("components")
-      .select("*")
-      .order("created_at", { ascending: false })
-      /* never leave the gallery hanging if the network stalls */
-      .abortSignal(AbortSignal.timeout(8000));
+      .select(LIST_COLUMNS)
+      .order("created_at", { ascending: false });
+
+    if (options?.limit) {
+      const from = options.offset || 0;
+      query = query.range(from, from + options.limit - 1);
+    }
+
+    const { data, error } = await query.abortSignal(AbortSignal.timeout(8000));
     if (error) throw error;
     return ((data ?? []) as ComponentRow[]).map(rowToItem);
   } catch {
@@ -218,8 +246,22 @@ export async function listComponents(): Promise<ShowcaseItem[]> {
 }
 
 export async function getComponent(slug: string): Promise<ShowcaseItem | null> {
-  const all = await listComponents();
-  return all.find((i) => i.slug === slug) ?? null;
+  if (!SUPABASE_CONFIGURED) {
+    const all = loadUploads();
+    return all.find((i) => i.slug === slug) ?? null;
+  }
+  try {
+    const { data, error } = await supabase
+      .from("components")
+      .select("*")
+      .eq("slug", slug)
+      .abortSignal(AbortSignal.timeout(5000))
+      .maybeSingle();
+    if (error || !data) return null;
+    return rowToItem(data as ComponentRow);
+  } catch {
+    return null;
+  }
 }
 
 export async function createComponent(item: ShowcaseItem): Promise<void> {
@@ -256,7 +298,13 @@ export async function hasUserLiked(slug: string): Promise<boolean> {
   if (!SUPABASE_CONFIGURED) {
     try {
       const raw = localStorage.getItem("cf-likes-v1");
-      const liked: string[] = raw ? JSON.parse(raw) : [];
+      let liked: string[] = [];
+      if (raw && raw.trim()) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) liked = parsed;
+        } catch {}
+      }
       return liked.includes(slug);
     } catch {
       return false;
@@ -285,7 +333,13 @@ export async function toggleLike(
   if (!SUPABASE_CONFIGURED) {
     try {
       const raw = localStorage.getItem("cf-likes-v1");
-      const liked: string[] = raw ? JSON.parse(raw) : [];
+      let liked: string[] = [];
+      if (raw && raw.trim()) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) liked = parsed;
+        } catch {}
+      }
       const isLiked = liked.includes(slug);
       const updated = isLiked
         ? liked.filter((s) => s !== slug)

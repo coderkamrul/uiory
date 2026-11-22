@@ -12,19 +12,31 @@ import {
   ensureCategory,
 } from "@/lib/db";
 import PreviewArt from "@/components/PreviewArt";
+import BulkImportModal from "@/components/BulkImportModal";
 import { Component as Loader } from "@/components/ui/ripple-pulse-loader";
 import {
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
   Crown,
   Eye,
+  FileSpreadsheet,
   Heart,
+  Image as ImageIcon,
   Layers,
   Pencil,
   Plus,
   Search,
+  Sparkles,
   Tag,
   Trash2,
 } from "lucide-react";
+
+function isDefaultMedia(item: ShowcaseItem): boolean {
+  const url = (item.mediaUrl || item.imageUrl || "").trim();
+  if (!url) return true;
+  return url.includes("1793027269194-site-background.webp");
+}
 
 export default function AdminComponentsPage() {
   const [tab, setTab] = useState<"components" | "categories">("components");
@@ -34,9 +46,13 @@ export default function AdminComponentsPage() {
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "single" | "compare">("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [mediaFilter, setMediaFilter] = useState<"all" | "default" | "custom">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [notice, setNotice] = useState("");
   const [newCatName, setNewCatName] = useState("");
   const [isAddingCat, setIsAddingCat] = useState(false);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   // Edit category modal state
   const [catToEdit, setCatToEdit] = useState<{
@@ -67,6 +83,14 @@ export default function AdminComponentsPage() {
     loadData();
   }, []);
 
+  const defaultMediaCount = useMemo(() => {
+    return items.filter(isDefaultMedia).length;
+  }, [items]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, categoryFilter, typeFilter, mediaFilter, pageSize]);
+
   const shown = useMemo(
     () =>
       items.filter((i) => {
@@ -77,10 +101,22 @@ export default function AdminComponentsPage() {
           typeFilter === "all" ? true : i.type === typeFilter;
         const matchesCategory =
           categoryFilter === "all" ? true : i.category === categoryFilter;
-        return matchesQuery && matchesType && matchesCategory;
+        const matchesMedia =
+          mediaFilter === "all"
+            ? true
+            : mediaFilter === "default"
+            ? isDefaultMedia(i)
+            : !isDefaultMedia(i);
+        return matchesQuery && matchesType && matchesCategory && matchesMedia;
       }),
-    [items, query, typeFilter, categoryFilter]
+    [items, query, typeFilter, categoryFilter, mediaFilter]
   );
+
+  const totalPages = Math.max(1, Math.ceil(shown.length / pageSize));
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return shown.slice(start, start + pageSize);
+  }, [shown, currentPage, pageSize]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -195,11 +231,27 @@ export default function AdminComponentsPage() {
           </p>
         </div>
 
-        {/* Add Component Button */}
-        <div>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3">
+          <a
+            href="/sample-components.csv"
+            download="sample-components.csv"
+            className="cursor-pointer p-0 border-0 bg-transparent text-xs text-zinc-400 hover:text-white underline underline-offset-4 transition"
+            title="Download sample CSV template"
+          >
+            Download sample
+          </a>
+          <button
+            onClick={() => setBulkImportOpen(true)}
+            className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-white/10 hover:border-white/20 active:scale-95"
+            title="Import components in bulk via CSV"
+          >
+            <FileSpreadsheet size={15} className="text-blue-400" />
+            Bulk Import (CSV)
+          </button>
           <Link
             href="/admin/new"
-            className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-950/40 transition hover:from-blue-500 hover:to-indigo-500"
+            className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-950/40 transition hover:from-blue-500 hover:to-indigo-500 active:scale-95"
           >
             <Plus size={16} /> Add Component
           </Link>
@@ -269,6 +321,26 @@ export default function AdminComponentsPage() {
                   </option>
                 ))}
               </select>
+
+              {/* Media Filter: Default Media vs Custom vs All */}
+              <select
+                value={mediaFilter}
+                onChange={(e) => setMediaFilter(e.target.value as any)}
+                className={`h-10 rounded-xl border px-3 text-xs outline-none cursor-pointer transition ${
+                  mediaFilter === "default"
+                    ? "border-amber-500/50 bg-amber-500/10 text-amber-300 font-semibold"
+                    : "border-[#27272a] bg-[#141417] text-white focus:border-blue-500/50"
+                }`}
+                title="Filter components by media type"
+              >
+                <option value="all">All Media ({items.length})</option>
+                <option value="default">
+                  Default Media ({defaultMediaCount})
+                </option>
+                <option value="custom">
+                  Custom Media ({items.length - defaultMediaCount})
+                </option>
+              </select>
             </div>
 
             {/* Type Filter */}
@@ -315,7 +387,7 @@ export default function AdminComponentsPage() {
               </div>
             ) : (
               <ul className="divide-y divide-[#1f1f23]">
-                {shown.map((item) => (
+                {paginatedItems.map((item) => (
                   <li
                     key={item.slug}
                     className="flex flex-wrap items-center justify-between gap-4 p-4 transition hover:bg-white/[0.02]"
@@ -341,9 +413,18 @@ export default function AdminComponentsPage() {
 
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-white flex items-center gap-1.5">
-                          {item.title}
+                          <span>{item.title}</span>
                           {item.pro && (
                             <Crown size={12} className="text-amber-300 shrink-0" />
+                          )}
+                          {isDefaultMedia(item) && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 text-[9.5px] font-semibold text-amber-300 shrink-0"
+                              title="Uses fallback background - needs custom media upload"
+                            >
+                              <ImageIcon size={9} />
+                              Default Media
+                            </span>
                           )}
                         </p>
                         <p className="mt-0.5 truncate text-[11px] text-ink-3">
@@ -396,6 +477,108 @@ export default function AdminComponentsPage() {
                   </li>
                 ))}
               </ul>
+            )}
+
+            {/* Pagination Controls */}
+            {shown.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#1f1f23] px-5 py-3.5 bg-[#121215]">
+                <div className="text-xs text-ink-3">
+                  Showing{" "}
+                  <span className="font-semibold text-white">
+                    {(currentPage - 1) * pageSize + 1}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-semibold text-white">
+                    {Math.min(currentPage * pageSize, shown.length)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-white">{shown.length}</span>{" "}
+                  components
+                  {shown.length !== items.length && (
+                    <span className="ml-1 text-ink-3/70">
+                      (filtered from {items.length} total)
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.02] text-xs text-zinc-300 transition hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    title="Previous page"
+                  >
+                    <ChevronLeft size={15} />
+                  </button>
+
+                  {/* Smart pagination buttons */}
+                  {Array.from({ length: totalPages }, (_, idx) => idx + 1)
+                    .filter((p) => {
+                      return (
+                        p === 1 ||
+                        p === totalPages ||
+                        Math.abs(p - currentPage) <= 1
+                      );
+                    })
+                    .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) {
+                        acc.push("...");
+                      }
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((page, idx) =>
+                      typeof page === "number" ? (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentPage(page)}
+                          className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                            currentPage === page
+                              ? "bg-white text-black shadow-sm"
+                              : "border border-white/10 bg-white/[0.02] text-zinc-300 hover:bg-white/10 hover:text-white"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ) : (
+                        <span
+                          key={idx}
+                          className="px-1 text-xs text-ink-3 select-none"
+                        >
+                          …
+                        </span>
+                      )
+                    )}
+
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.02] text-xs text-zinc-300 transition hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    title="Next page"
+                  >
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+
+                {/* Page size selector */}
+                <div className="flex items-center gap-2 text-xs text-ink-3">
+                  <span>Show</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="h-8 rounded-lg border border-white/10 bg-[#161619] px-2 text-xs text-white outline-none cursor-pointer"
+                  >
+                    <option value={20}>20</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <span>per page</span>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -580,6 +763,19 @@ export default function AdminComponentsPage() {
           </div>
         </div>
       )}
+
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        open={bulkImportOpen}
+        onClose={() => setBulkImportOpen(false)}
+        onSuccess={() => {
+          loadData();
+          setNotice("Bulk import completed successfully! New components are now live.");
+        }}
+        categories={categories}
+        existingSlugs={items.map((i) => i.slug)}
+        existingItems={items}
+      />
     </div>
   );
 }

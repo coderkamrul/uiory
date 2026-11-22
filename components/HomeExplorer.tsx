@@ -55,6 +55,10 @@ export default function HomeExplorer({
 
   const [catList, setCatList] = useState<string[]>([]);
   const [masonryCols, setMasonryCols] = useState(5);
+  const [visibleCount, setVisibleCount] = useState(20);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const isLoadingRef = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function updateCols() {
@@ -134,17 +138,77 @@ export default function HomeExplorer({
     return list;
   }, [items, cat, type, pricing, sort, query]);
 
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [cat, type, pricing, sort, query]);
+
+  const displayedItems = useMemo(() => {
+    return shown.slice(0, visibleCount);
+  }, [shown, visibleCount]);
+
   /* Distribute items round-robin across vertical columns so that
      item 1 is col 1 row 1, item 2 is col 2 row 1, item 3 is col 3 row 1, etc.
      This maintains the Pinterest column masonry while ensuring the first row
      displays the top sorted items from left to right! */
   const columnsData = useMemo(() => {
     const cols: ShowcaseItem[][] = Array.from({ length: masonryCols }, () => []);
-    shown.forEach((item, index) => {
+    displayedItems.forEach((item, index) => {
       cols[index % masonryCols].push(item);
     });
     return cols;
-  }, [shown, masonryCols]);
+  }, [displayedItems, masonryCols]);
+
+  const hasMore = visibleCount < shown.length;
+
+  const triggerLoadMore = useCallback(() => {
+    if (isLoadingRef.current || visibleCount >= shown.length) return;
+    isLoadingRef.current = true;
+    setIsLoadingMore(true);
+
+    setTimeout(() => {
+      setVisibleCount((prev) => Math.min(prev + 15, shown.length));
+      setIsLoadingMore(false);
+      isLoadingRef.current = false;
+    }, 750);
+  }, [visibleCount, shown.length]);
+
+  useEffect(() => {
+    if (!hasMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          triggerLoadMore();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "0px",
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, triggerLoadMore]);
+
+  useEffect(() => {
+    if (!hasMore) return;
+    function handleScroll() {
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+      if (scrollY + windowHeight >= docHeight - 30) {
+        triggerLoadMore();
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [hasMore, triggerLoadMore]);
 
   useEffect(() => {
     if (!gridRef.current || !shown.length) return;
@@ -414,18 +478,39 @@ export default function HomeExplorer({
           </button>
         </p>
       ) : (
-        <div
-          ref={gridRef}
-          className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
-        >
-          {columnsData.map((colItems, colIdx) => (
-            <div key={colIdx} className="flex min-w-0 flex-col gap-4">
-              {colItems.map((item) => (
-                <ShowcaseCard key={item.slug} item={item} />
-              ))}
+        <>
+          <div
+            ref={gridRef}
+            className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+          >
+            {columnsData.map((colItems, colIdx) => (
+              <div key={colIdx} className="flex min-w-0 flex-col gap-4">
+                {colItems.map((item) => (
+                  <ShowcaseCard key={item.slug} item={item} />
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {hasMore && (
+            <div
+              ref={sentinelRef}
+              className="mt-12 flex w-full items-center justify-center py-8"
+            >
+              <div className="h-7 w-7 animate-spin rounded-full border-[2.5px] border-white/20 border-t-white" />
             </div>
-          ))}
-        </div>
+          )}
+
+          {!hasMore && shown.length > 20 && (
+            <div className="mt-14 flex w-full flex-col items-center justify-center py-8 text-center text-xs text-ink-3">
+              <div className="mb-2.5 h-1 w-10 rounded-full bg-white/10" />
+              <p>You&apos;ve reached the end of the showcase</p>
+              <p className="mt-0.5 text-[11px] text-ink-3/70">
+                Showing all {shown.length} components
+              </p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

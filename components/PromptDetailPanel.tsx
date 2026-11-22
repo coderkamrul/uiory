@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { type ShowcaseItem, type Sponsor } from "@/lib/data";
@@ -43,6 +43,11 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
      the active card always spans the first 3, related cards take the
      remaining column(s) beside it and the rows below */
   const [colCount, setColCount] = useState(4);
+  const [visibleCount, setVisibleCount] = useState(15);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const isLoadingRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const handleBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -62,6 +67,7 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
 
   useEffect(() => {
     setActive(0);
+    setVisibleCount(15);
     getComponent(slug).then((res) => {
       setItem(res);
       if (res) {
@@ -110,6 +116,77 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
       { opacity: 1, scale: 1, duration: 0.45, ease: "power2.out" }
     );
   }, [active, item]);
+
+  const displayedOthers = useMemo(() => {
+    return others.slice(0, visibleCount);
+  }, [others, visibleCount]);
+
+  const hasMore = visibleCount < others.length;
+
+  const triggerLoadMore = useCallback(() => {
+    if (isLoadingRef.current || visibleCount >= others.length) return;
+    isLoadingRef.current = true;
+    setIsLoadingMore(true);
+
+    setTimeout(() => {
+      setVisibleCount((prev) => Math.min(prev + 15, others.length));
+      setIsLoadingMore(false);
+      isLoadingRef.current = false;
+    }, 750);
+  }, [visibleCount, others.length]);
+
+  useEffect(() => {
+    if (!hasMore) return;
+    const sentinel = sentinelRef.current;
+    const container = containerRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          triggerLoadMore();
+        }
+      },
+      {
+        root: container,
+        rootMargin: "0px",
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, triggerLoadMore]);
+
+  useEffect(() => {
+    if (!hasMore) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    function handleScroll() {
+      if (!container) return;
+      if (
+        container.scrollTop + container.clientHeight >=
+        container.scrollHeight - 40
+      ) {
+        triggerLoadMore();
+      }
+    }
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [hasMore, triggerLoadMore]);
+
+  /* remaining cards distributed across the grid columns — the
+     columns BESIDE the detail card (the last two on xl, the last
+     one on lg) fill first, then the columns below it */
+  const cols = useMemo(() => {
+    const c: ShowcaseItem[][] = Array.from({ length: colCount }, () => []);
+    const fillOrder = colCount === 5 ? [3, 4, 0, 1, 2] : [3, 0, 1, 2];
+    displayedOthers.forEach((it, idx) => c[fillOrder[idx % colCount]].push(it));
+    return c;
+  }, [colCount, displayedOthers]);
 
   async function copyPrompt() {
     if (!item) return;
@@ -186,15 +263,8 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
   const locked = !!item.pro;
   const sponsorsList: Sponsor[] = item.sponsors ?? [];
 
-  /* remaining cards distributed across the grid columns — the
-     columns BESIDE the detail card (the last two on xl, the last
-     one on lg) fill first, then the columns below it */
-  const cols: ShowcaseItem[][] = Array.from({ length: colCount }, () => []);
-  const fillOrder = colCount === 5 ? [3, 4, 0, 1, 2] : [3, 0, 1, 2];
-  others.forEach((it, idx) => cols[fillOrder[idx % colCount]].push(it));
-
   return (
-    <div className="animate-fade-in fixed inset-0 z-40 overflow-y-auto bg-[#0a0a0a]">
+    <div ref={containerRef} className="animate-fade-in fixed inset-0 z-40 overflow-y-auto bg-[#0a0a0a]">
       <div className="mx-auto w-full max-w-[1920px] px-4 pb-16 pt-[120px] sm:px-6">
         <div className="relative">
           {/* detail block: in flow on small screens, floating at
@@ -537,6 +607,25 @@ export default function PromptDetailPanel({ slug }: { slug: string }) {
               </div>
             ))}
           </div>
+
+          {hasMore && (
+            <div
+              ref={sentinelRef}
+              className="mt-12 flex w-full items-center justify-center py-8"
+            >
+              <div className="h-7 w-7 animate-spin rounded-full border-[2.5px] border-white/20 border-t-white" />
+            </div>
+          )}
+
+          {!hasMore && others.length > 15 && (
+            <div className="mt-14 flex w-full flex-col items-center justify-center py-8 text-center text-xs text-ink-3">
+              <div className="mb-2.5 h-1 w-10 rounded-full bg-white/10" />
+              <p>You&apos;ve reached the end of the showcase</p>
+              <p className="mt-0.5 text-[11px] text-ink-3/70">
+                Showing all {others.length} components
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

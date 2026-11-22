@@ -1,34 +1,45 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /**
  * A video that hides black bars baked into the recording itself.
- *
- * Screen recordings often come out as a landscape page centred in a
- * portrait file (black bars top and bottom — the bars are part of the
- * file, so no CSS aspect trick on the raw frame can remove them).
- * On load, a hidden probe copy of the video draws a frame to a
- * canvas and scans for black bar rows; if BOTH a top and a bottom
- * bar are found, the visible video is reframed at the CONTENT's
- * aspect ratio with object-fit: cover, so only the real content
- * shows — on cards and on the detail page. Videos without bars keep
- * their natural aspect, untouched. If the frame cannot be read
- * (CORS), the natural rendering stays.
+ * For cards (variant="card"): ONLY plays when hovered, stays paused on frame 0 otherwise.
+ * For details (variant="detail"): autoplays with ambient backdrop.
  */
 export default function AutoCropVideo({
   src,
   variant = "card",
   controls = false,
+  isHovered: externalHovered,
   overlay,
 }: {
   src: string;
   variant?: "card" | "detail";
   controls?: boolean;
+  isHovered?: boolean;
   /** rendered above the video, positioned by the root (detail back button) */
   overlay?: ReactNode;
 }) {
   const [crop, setCrop] = useState<{ ar: number; posY: number } | null>(null);
+  const [internalHovered, setInternalHovered] = useState(false);
+  const isHovered = externalHovered ?? internalHovered;
+  const cardVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Strictly enforce hover-to-play for card variant
+  useEffect(() => {
+    const video = cardVideoRef.current;
+    if (!video || variant !== "card") return;
+    video.muted = true;
+    video.playsInline = true;
+
+    if (isHovered) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+      video.currentTime = 0;
+    }
+  }, [isHovered, variant, src, crop]);
 
   useEffect(() => {
     setCrop(null);
@@ -82,72 +93,44 @@ export default function AutoCropVideo({
     };
   }, [src]);
 
-  if (crop) {
-    if (variant === "detail") {
-      return (
-        <div
-          className="relative w-full overflow-hidden bg-[#18181b] flex items-center justify-center min-h-[380px] sm:min-h-[440px] md:min-h-[480px]"
-          style={{ maxHeight: "82vh" }}
-        >
-          {/* Ambient blurred backdrop */}
-          <video
-            src={src}
-            autoPlay
-            muted
-            loop
-            playsInline
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover scale-125 blur-3xl opacity-30 select-none"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40 pointer-events-none" />
-          {/* Crisp foreground video */}
-          <div
-            className="relative z-10 overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/10"
-            style={{ aspectRatio: String(crop.ar), maxHeight: "76vh" }}
-          >
-            <video
-              ref={(el) => { if (el) el.muted = true; }}
-              src={src}
-              autoPlay
-              muted
-              loop
-              playsInline
-              controls={controls}
-              className="h-full w-full object-cover"
-              style={{ objectPosition: `50% ${crop.posY}%` }}
-            />
-          </div>
-          {overlay}
-        </div>
-      );
-    }
+  // CARD VARIANT (Home / Showcase Page): ONLY plays on hover, strictly paused on frame 0 otherwise
+  if (variant === "card") {
     return (
       <div
-        className="relative w-full overflow-hidden bg-black"
-        style={{ aspectRatio: String(crop.ar) }}
+        className="relative w-full overflow-hidden"
+        style={crop ? { aspectRatio: String(crop.ar), backgroundColor: "#000" } : { backgroundColor: "#111113" }}
+        onMouseEnter={() => setInternalHovered(true)}
+        onMouseLeave={() => setInternalHovered(false)}
       >
         <video
-          ref={(el) => {
-            if (el) el.muted = true;
-          }}
+          ref={cardVideoRef}
           src={src}
-          autoPlay
           muted
           loop
           playsInline
+          preload="metadata"
           controls={controls}
-          className="absolute inset-0 h-full w-full object-cover"
-          style={{ objectPosition: `50% ${crop.posY}%` }}
+          onPlay={(e) => {
+            if (!isHovered) {
+              e.currentTarget.pause();
+              e.currentTarget.currentTime = 0;
+            }
+          }}
+          className={crop ? "absolute inset-0 h-full w-full object-cover" : "block w-full h-auto"}
+          style={crop ? { objectPosition: `50% ${crop.posY}%` } : undefined}
         />
         {overlay}
       </div>
     );
   }
 
-  /* No crop detected — render with ambient backdrop in detail mode */
-  if (variant === "detail") {
+  // DETAIL VARIANT (Prompt Detail View Modal): Autoplays with ambient backdrop
+  if (crop) {
     return (
-      <div className="relative w-full overflow-hidden bg-[#18181b] flex items-center justify-center min-h-[380px] sm:min-h-[440px] md:min-h-[480px] max-h-[82vh]">
+      <div
+        className="relative w-full overflow-hidden bg-[#18181b] flex items-center justify-center min-h-[380px] sm:min-h-[440px] md:min-h-[480px]"
+        style={{ maxHeight: "82vh" }}
+      >
         {/* Ambient blurred backdrop */}
         <video
           src={src}
@@ -159,35 +142,51 @@ export default function AutoCropVideo({
           className="pointer-events-none absolute inset-0 h-full w-full object-cover scale-125 blur-3xl opacity-30 select-none"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40 pointer-events-none" />
-        {/* Crisp centered foreground video */}
-        <video
-          ref={(el) => { if (el) el.muted = true; }}
-          src={src}
-          autoPlay
-          muted
-          loop
-          playsInline
-          controls={controls}
-          className="relative z-10 block max-h-[76vh] w-auto max-w-full object-contain mx-auto rounded-xl shadow-2xl ring-1 ring-white/10"
-        />
+        {/* Crisp foreground video */}
+        <div
+          className="relative z-10 overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/10"
+          style={{ aspectRatio: String(crop.ar), maxHeight: "76vh" }}
+        >
+          <video
+            ref={(el) => { if (el) el.muted = true; }}
+            src={src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls={controls}
+            className="h-full w-full object-cover"
+            style={{ objectPosition: `50% ${crop.posY}%` }}
+          />
+        </div>
         {overlay}
       </div>
     );
   }
 
   return (
-    <div className="relative w-full overflow-hidden bg-[#111113]">
+    <div className="relative w-full overflow-hidden bg-[#18181b] flex items-center justify-center min-h-[380px] sm:min-h-[440px] md:min-h-[480px] max-h-[82vh]">
+      {/* Ambient blurred backdrop */}
       <video
-        ref={(el) => {
-          if (el) el.muted = true;
-        }}
+        src={src}
+        autoPlay
+        muted
+        loop
+        playsInline
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover scale-125 blur-3xl opacity-30 select-none"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40 pointer-events-none" />
+      {/* Crisp centered foreground video */}
+      <video
+        ref={(el) => { if (el) el.muted = true; }}
         src={src}
         autoPlay
         muted
         loop
         playsInline
         controls={controls}
-        className="block w-full h-auto"
+        className="relative z-10 block max-h-[76vh] w-auto max-w-full object-contain mx-auto rounded-xl shadow-2xl ring-1 ring-white/10"
       />
       {overlay}
     </div>

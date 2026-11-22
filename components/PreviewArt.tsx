@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { Check } from "lucide-react";
 import type { ShowcaseItem } from "@/lib/data";
 
@@ -9,18 +12,46 @@ import type { ShowcaseItem } from "@/lib/data";
  */
 export default function PreviewArt({
   item,
+  isHovered,
 }: {
   item: Pick<ShowcaseItem, "pattern" | "hue" | "imageUrl" | "mediaUrl" | "mediaType"> & { title?: string };
+  isHovered?: boolean;
 }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    video.playsInline = true;
+
+    if (typeof isHovered === "boolean") {
+      if (isHovered) {
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+        video.currentTime = 0;
+      }
+    }
+  }, [isHovered]);
+
   if (item.mediaUrl) {
-    if (item.mediaType === "video") {
+    if (item.mediaType === "video" || item.mediaUrl.endsWith(".mp4") || item.mediaUrl.endsWith(".webm")) {
       return (
         <video
+          ref={videoRef}
           src={item.mediaUrl}
-          autoPlay
+          autoPlay={isHovered === undefined}
           muted
           loop
           playsInline
+          preload="metadata"
+          onPlay={(e) => {
+            if (typeof isHovered === "boolean" && !isHovered) {
+              e.currentTarget.pause();
+              e.currentTarget.currentTime = 0;
+            }
+          }}
           className="absolute inset-0 h-full w-full object-cover"
         />
       );

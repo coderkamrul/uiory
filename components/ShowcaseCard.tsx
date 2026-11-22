@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { ShowcaseItem } from "@/lib/data";
 import { hasUserLiked, toggleLike } from "@/lib/db";
 import PreviewArt from "./PreviewArt";
 import AutoCropVideo from "./AutoCropVideo";
-import { Copy, Crown, Heart } from "lucide-react";
+import { Check, Copy, Crown, Heart } from "lucide-react";
 
 /**
  * Card anatomy:
@@ -41,9 +41,49 @@ export default function ShowcaseCard({
       mediaSrc.endsWith(".webm") ||
       mediaSrc.endsWith(".mov"));
 
+  const [isHovered, setIsHovered] = useState(false);
+  const compareVideoARef = useRef<HTMLVideoElement>(null);
+  const compareVideoBRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (isHovered) {
+      compareVideoARef.current?.play().catch(() => {});
+      compareVideoBRef.current?.play().catch(() => {});
+    } else {
+      if (compareVideoARef.current) {
+        compareVideoARef.current.pause();
+        compareVideoARef.current.currentTime = 0;
+      }
+      if (compareVideoBRef.current) {
+        compareVideoBRef.current.pause();
+        compareVideoBRef.current.currentTime = 0;
+      }
+    }
+  }, [isHovered]);
+
   const [likes, setLikes] = useState(item.copies ?? 0);
   const [liked, setLiked] = useState(false);
   const [liking, setLiking] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopyPrompt(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const textToCopy = item.prompt || item.description || item.title || "";
+    if (!textToCopy) return;
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = textToCopy;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   useEffect(() => {
     hasUserLiked(item.slug).then(setLiked);
@@ -87,13 +127,18 @@ export default function ShowcaseCard({
   );
 
   return (
-    <Link href={`/?prompt=${item.slug}`} className="group block break-inside-avoid">
+    <Link
+      href={`/?prompt=${item.slug}`}
+      className="group block break-inside-avoid"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className="flex flex-col">
         {mediaSrc ? (
           <div className="relative mb-3 w-full shrink-0 overflow-hidden rounded-[calc(1rem+4px)] bg-[#1c1c1f]">
             {heartButton}
             {isVideoMedia ? (
-              <AutoCropVideo src={mediaSrc} variant="card" />
+              <AutoCropVideo src={mediaSrc} variant="card" isHovered={isHovered} />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={mediaSrc} alt={item.title} className="block h-auto w-full" />
@@ -111,11 +156,18 @@ export default function ShowcaseCard({
                 {item.variants[0].mediaUrl ? (
                   item.variants[0].mediaType === "video" || item.variants[0].mediaUrl.endsWith(".mp4") ? (
                     <video
+                      ref={compareVideoARef}
                       src={item.variants[0].mediaUrl}
-                      autoPlay
                       muted
                       loop
                       playsInline
+                      preload="metadata"
+                      onPlay={(e) => {
+                        if (!isHovered) {
+                          e.currentTarget.pause();
+                          e.currentTarget.currentTime = 0;
+                        }
+                      }}
                       className="absolute inset-y-0 left-0 h-full w-[200%] max-w-none object-cover pointer-events-none"
                     />
                   ) : (
@@ -128,7 +180,7 @@ export default function ShowcaseCard({
                   )
                 ) : (
                   <div className="absolute inset-y-0 left-0 h-full w-[200%]">
-                    <PreviewArt item={{ pattern: item.pattern, hue: item.variants[0].hue }} />
+                    <PreviewArt item={{ pattern: item.pattern, hue: item.variants[0].hue }} isHovered={isHovered} />
                   </div>
                 )}
                 <span className="absolute bottom-2 left-2 z-10 rounded-full bg-black/70 px-2 py-[3px] text-[9.5px] uppercase tracking-wide text-white backdrop-blur">
@@ -141,11 +193,18 @@ export default function ShowcaseCard({
                 {item.variants[1].mediaUrl ? (
                   item.variants[1].mediaType === "video" || item.variants[1].mediaUrl.endsWith(".mp4") ? (
                     <video
+                      ref={compareVideoBRef}
                       src={item.variants[1].mediaUrl}
-                      autoPlay
                       muted
                       loop
                       playsInline
+                      preload="metadata"
+                      onPlay={(e) => {
+                        if (!isHovered) {
+                          e.currentTarget.pause();
+                          e.currentTarget.currentTime = 0;
+                        }
+                      }}
                       className="absolute inset-y-0 right-0 h-full w-[200%] max-w-none object-cover pointer-events-none"
                     />
                   ) : (
@@ -158,7 +217,7 @@ export default function ShowcaseCard({
                   )
                 ) : (
                   <div className="absolute inset-y-0 right-0 h-full w-[200%]">
-                    <PreviewArt item={{ pattern: item.pattern, hue: item.variants[1].hue }} />
+                    <PreviewArt item={{ pattern: item.pattern, hue: item.variants[1].hue }} isHovered={isHovered} />
                   </div>
                 )}
                 <span className="absolute bottom-2 right-2 z-10 rounded-full bg-black/70 px-2 py-[3px] text-[9.5px] uppercase tracking-wide text-white backdrop-blur">
@@ -178,7 +237,7 @@ export default function ShowcaseCard({
               }`}
           >
             {heartButton}
-            <PreviewArt item={item} />
+            <PreviewArt item={item} isHovered={isHovered} />
             <div className="pointer-events-none absolute inset-0 bg-white/0 transition group-hover:bg-white/[0.04]" />
           </div>
         )}
@@ -197,7 +256,24 @@ export default function ShowcaseCard({
             {item.pro ? (
               <Crown size={20} className="fill-[#a1a1aa] text-[#a1a1aa]" aria-label="Pro component" />
             ) : (
-              <Copy size={20} className="text-[#a1a1aa] transition-colors group-hover:text-[#e5e5e5]" aria-label="Copy prompt" />
+              <button
+                type="button"
+                onClick={handleCopyPrompt}
+                title={copied ? "Copied prompt!" : "Copy prompt"}
+                aria-label={copied ? "Prompt copied to clipboard" : "Copy prompt"}
+                className="cursor-pointer relative -m-1.5 p-1.5 rounded-lg text-[#a1a1aa] transition hover:bg-white/10 hover:text-white active:scale-90"
+              >
+                {copied ? (
+                  <Check size={20} className="text-emerald-400" />
+                ) : (
+                  <Copy size={20} className="text-[#a1a1aa] transition-colors group-hover:text-[#e5e5e5]" />
+                )}
+                {copied && (
+                  <span className="pointer-events-none absolute -top-8 right-0 z-30 whitespace-nowrap rounded-md bg-[#18181b] px-2 py-0.5 text-[11px] font-medium text-emerald-400 shadow-xl ring-1 ring-emerald-500/30">
+                    Copied!
+                  </span>
+                )}
+              </button>
             )}
           </div>
         </div>

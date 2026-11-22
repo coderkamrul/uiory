@@ -52,6 +52,28 @@ export const DEFAULT_SPONSORS: Sponsor[] = [
   },
 ];
 
+export function parseSponsorFromUrl(inputUrl: string): Sponsor {
+  let clean = inputUrl.trim();
+  if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+    clean = "https://" + clean;
+  }
+  let domain = "";
+  try {
+    const u = new URL(clean);
+    domain = u.hostname.replace(/^www\./, "");
+  } catch {
+    domain = clean.replace(/^https?:\/\//, "").split("/")[0];
+  }
+  const brandPart = domain.split(".")[0];
+  const capitalized = brandPart ? brandPart.charAt(0).toUpperCase() + brandPart.slice(1) : "Partner";
+  return {
+    name: `Build in ${capitalized}`,
+    tagline: `Powered by ${capitalized}`,
+    url: clean,
+    logoUrl: domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : "",
+  };
+}
+
 export interface ShowcaseItem {
   slug: string;
   title: string;

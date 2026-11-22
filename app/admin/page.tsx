@@ -11,6 +11,7 @@ import {
   deleteContactSubmission,
 } from "@/lib/contact";
 import PreviewArt from "@/components/PreviewArt";
+import BulkImportModal from "@/components/BulkImportModal";
 import { Component as Loader } from "@/components/ui/ripple-pulse-loader";
 import {
   ArrowUpRight,
@@ -24,6 +25,7 @@ import {
   Database,
   ExternalLink,
   Eye,
+  FileSpreadsheet,
   Film,
   Flame,
   HardDrive,
@@ -48,8 +50,9 @@ export default function AdminDashboardPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [submissions, setSubmissions] = useState<ContactSubmission[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
-  useEffect(() => {
+  const loadData = () => {
     Promise.all([
       listCategories(),
       listComponents(),
@@ -60,6 +63,10 @@ export default function AdminDashboardPage() {
       setSubmissions(subList);
       setLoaded(true);
     });
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   // ── Quantitative Metrics ──
@@ -145,6 +152,22 @@ export default function AdminDashboardPage() {
             Public Showcase
             <ExternalLink size={11} className="text-zinc-500" />
           </Link>
+          <a
+            href="/sample-components.csv"
+            download="sample-components.csv"
+            className="cursor-pointer p-0 border-0 bg-transparent text-[12.5px] text-zinc-400 hover:text-white underline underline-offset-4 transition"
+            title="Download sample CSV template"
+          >
+            Download sample
+          </a>
+          <button
+            onClick={() => setBulkImportOpen(true)}
+            className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#141418] px-3.5 py-2 text-[12.5px] font-medium text-zinc-300 transition hover:bg-white/[0.06] hover:text-white active:scale-95"
+            title="Import components in bulk from CSV"
+          >
+            <FileSpreadsheet size={14} className="text-blue-400" />
+            Bulk Import (CSV)
+          </button>
           <Link
             href="/admin/new"
             className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-[12.5px] font-semibold text-black shadow-sm transition hover:bg-zinc-200 active:scale-95"
@@ -545,6 +568,18 @@ export default function AdminDashboardPage() {
         </div>
 
       </div>
+
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        open={bulkImportOpen}
+        onClose={() => setBulkImportOpen(false)}
+        onSuccess={() => {
+          loadData();
+        }}
+        categories={categories}
+        existingSlugs={items.map((i) => i.slug)}
+        existingItems={items}
+      />
 
     </div>
   );
