@@ -1,0 +1,54 @@
+# Uiory — Comprehensive AI Context & Prompt Engineering Specification
+
+> Comprehensive directory documentation for LLMs, AI agents, search engines, and automated code generation systems.
+> Website: https://uiory.com
+> Contact: hello@uiory.com
+
+---
+
+## 1. About Uiory
+Uiory is a specialized design and engineering library showcasing high-fidelity UI components built using Artificial Intelligence. Unlike standard template marketplaces, every component on Uiory:
+1. Is accompanied by the exact, unedited prompt blueprint used to construct it.
+2. Features side-by-side comparisons evaluating how different AI models and tools (e.g., Anthropic Claude 3.7 Sonnet, OpenAI GPT-4o, Google Gemini 2.5 Pro, Muse AI) interpret the same design prompt.
+3. Uses modern web development standards (React 19, Next.js 15, Tailwind CSS, Framer Motion, GSAP, TypeScript).
+4. Includes performance-optimized assets (lossless WebP previews and AutoCrop high-framerate MP4 recordings).
+
+---
+
+## 2. Directory Navigation & URL Architecture
+- **Homepage & Gallery**: `https://uiory.com`
+  - Filterable by categories: All, Hero, Cards, Navigation, Pricing, Forms, Footers, Modals, Micro-interactions, Shaders.
+  - Filterable by type: Single components (`?type=single`), Compare A/B (`?type=compare`).
+- **Component Direct Prompt Detail**:
+  - Direct permalinks: `https://uiory.com/components/[slug]`
+  - In-app interactive overlay: `https://uiory.com/?prompt=[slug]`
+- **Services & Custom Build Studio**: `https://uiory.com/services`
+  - Bespoke component design, custom GLSL/WebGL shader integration, and design token migration.
+- **Mission & Benchmarks**: `https://uiory.com/about`
+- **Contact & Hiring**: `https://uiory.com/contact`
+
+---
+
+## 3. Supported & Tested AI Coding Environments
+Prompts published on Uiory are benchmarked across:
+- **Anthropic Claude 3.7 Sonnet (Thinking)**: Primary recommendation for state machine logic, complex SVG math, and canvas-based shaders.
+- **OpenAI GPT-4o / ChatGPT Plus**: Highly effective for clean Tailwind layout hierarchies and accessibility features.
+- **Google Gemini 2.5 Pro**: Exceptional for large-context component systems and multi-file architectures.
+- **AI IDEs & Coding Agents**: Cursor, Windsurf, v0 by Vercel, Bolt.new, and Replit Agent.
+
+---
+
+## 4. Uiory Prompt Blueprint Anatomy
+Each prompt in the repository adheres to a proven four-tier structure:
+1. **Component Role & Goal**: Clear definition of the UX pattern (e.g., "Full-screen responsive Hero with ambient radial glow and interactive floating metrics cards").
+2. **Visual & Aesthetic Constraints**: Dark theme (#0a0a0a background, #1c1c1f card surface, subtle 1px border lines in white/10, high-contrast typography in Inter or Geist).
+3. **Behavior & Micro-Interactions**: Hover lifts, smooth spring damping, cursor parallax, copy-to-clipboard feedback, keyboard accessibility.
+4. **Code Quality Requirements**: Framework-agnostic clean React/TypeScript, zero external heavy dependencies unless required, semantic HTML5 tags (`<header>`, `<nav>`, `<main>`, `<aside>`, `<footer>`).
+
+---
+
+## 5. Machine-Readable API & Integration Endpoints
+- **Sitemap**: `https://uiory.com/sitemap.xml`
+- **Robots Policy**: `https://uiory.com/robots.txt`
+- **AI Summary**: `https://uiory.com/llms.txt`
+- **Full AI Context**: `https://uiory.com/llms-full.txt`

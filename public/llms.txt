@@ -1,0 +1,29 @@
+# Uiory
+
+> Curated AI UI Components, WebGL Shaders & Verified Prompts
+
+Uiory (https://uiory.com) is an open showcase of production-ready UI components built with frontier AI models (Claude 3.7 Sonnet, GPT-4o, Gemini 2.5 Pro). Every component includes the exact prompt blueprint used to generate it, side-by-side builder comparisons (e.g. Muse AI vs. Claude), live interactive previews, and complete source code.
+
+## Key Sections
+- [Showcase & Component Directory](https://uiory.com/): Browse, preview, and copy prompts for 200+ interactive web components.
+- [Services](https://uiory.com/services): Custom UI component engineering, WebGL shaders, design systems, and frontend consulting.
+- [About](https://uiory.com/about): Mission, zero-hallucination prompt architecture, and benchmarking methodology.
+- [Contact](https://uiory.com/contact): Inquiries for custom engineering and partnerships.
+
+## Popular Categories
+- **Hero Sections**: High-converting landing page headers with particle systems, 3D meshes, and ambient glow.
+- **Cards & Grids**: Responsive Bento grids, 3D interactive tilt cards, and glassmorphism containers.
+- **Navigation**: Floating pill navigation docks, blurred sticky headers, and accessible mobile drawers.
+- **Pricing Tables**: Interactive tiered billing components, feature comparisons, and animated switches.
+- **Forms & Inputs**: Polished authentication layouts, multi-step wizards, and floating label inputs.
+- **Footers**: Comprehensive site footers with responsive link trees and newsletter integrations.
+
+## Prompt Blueprint Usage
+Every prompt in Uiory is engineered with:
+- Visual styling guidelines (Tailwind CSS, dark mode harmonic color palette).
+- Animation specifications (Framer Motion, GSAP, CSS cubic-bezier transitions).
+- Zero-hallucination constraints (TypeScript types, accessible ARIA attributes).
+- Model-agnostic compatibility for Claude 3.7 Sonnet, Cursor, v0, Windsurf, and ChatGPT.
+
+## Extended Documentation
+- [Full LLM Specification](https://uiory.com/llms-full.txt): Detailed component schemas, styling tokens, and prompt engineering guidelines.
