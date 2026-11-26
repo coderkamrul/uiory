@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { MEDIA_BUCKET, supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { R2_ENABLED, SUPABASE_CONFIGURED, uploadMediaFile } from "@/lib/supabase";
 import { FolderOpen, ImagePlus, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import MediaLibraryModal from "./MediaLibraryModal";
 
@@ -44,15 +44,9 @@ export default function MediaUpload({
     }
     setBusy(true);
     try {
-      if (SUPABASE_CONFIGURED) {
-        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-        const path = `${Date.now()}-${safe}`;
-        const { error } = await supabase.storage
-          .from(MEDIA_BUCKET)
-          .upload(path, file, { contentType: file.type, upsert: false });
-        if (error) throw new Error(error.message);
-        const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
-        onChange({ url: data.publicUrl, type: isVideo ? "video" : "image" });
+      if (R2_ENABLED || SUPABASE_CONFIGURED) {
+        const uploaded = await uploadMediaFile(file);
+        onChange({ url: uploaded.url, type: uploaded.type });
       } else if (isImage) {
         const dataUrl = await new Promise<string>((resolve, reject) => {
           const r = new FileReader();

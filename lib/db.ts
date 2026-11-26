@@ -294,6 +294,23 @@ export async function deleteComponent(slug: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function deleteComponents(slugs: string[]): Promise<void> {
+  if (slugs.length === 0) return;
+  if (!SUPABASE_CONFIGURED) {
+    for (const slug of slugs) {
+      deleteUpload(slug);
+    }
+    return;
+  }
+  // Chunk into batches of 100 to avoid PostgREST URL length limits
+  const chunkSize = 100;
+  for (let i = 0; i < slugs.length; i += chunkSize) {
+    const chunk = slugs.slice(i, i + chunkSize);
+    const { error } = await supabase.from("components").delete().in("slug", chunk);
+    if (error) throw new Error(error.message);
+  }
+}
+
 export async function hasUserLiked(slug: string): Promise<boolean> {
   if (!SUPABASE_CONFIGURED) {
     try {

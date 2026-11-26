@@ -14,7 +14,14 @@ import {
   Trash2,
   UploadCloud,
 } from "lucide-react";
-import { supabase, SUPABASE_CONFIGURED, MEDIA_BUCKET, deleteMediaFromStorage } from "@/lib/supabase";
+import {
+  supabase,
+  SUPABASE_CONFIGURED,
+  MEDIA_BUCKET,
+  R2_ENABLED,
+  uploadMediaFile,
+  deleteMediaFromStorage,
+} from "@/lib/supabase";
 import { listComponents, updateComponent } from "@/lib/db";
 import { Component as Loader } from "@/components/ui/ripple-pulse-loader";
 
@@ -42,7 +49,15 @@ export default function AdminMediaPage() {
     const mediaMap = new Map<string, MediaItem>();
 
     try {
-      if (SUPABASE_CONFIGURED) {
+      if (R2_ENABLED) {
+        const res = await fetch("/api/admin/media");
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data?.items)) {
+          for (const item of data.items as MediaItem[]) {
+            mediaMap.set(item.url, item);
+          }
+        }
+      } else if (SUPABASE_CONFIGURED) {
         const { data, error } = await supabase.storage
           .from("component-media")
           .list("", { limit: 100, sortBy: { column: "created_at", order: "desc" } });
@@ -126,8 +141,8 @@ export default function AdminMediaPage() {
     setUploadError("");
 
     try {
-      if (!SUPABASE_CONFIGURED) {
-        throw new Error("Supabase is not configured. Please add NEXT_PUBLIC_SUPABASE_URL and key.");
+      if (!R2_ENABLED && !SUPABASE_CONFIGURED) {
+        throw new Error("Media storage is not configured. Please add R2 or Supabase credentials.");
       }
 
       const ext = file.name.split(".").pop() || "bin";
@@ -137,21 +152,12 @@ export default function AdminMediaPage() {
         .slice(0, 40);
       const fileName = `${cleanBase}_${Date.now()}.${ext}`;
 
-      const { error } = await supabase.storage
-        .from("component-media")
-        .upload(fileName, file, { cacheControl: "3600", upsert: true });
+      const uploaded = await uploadMediaFile(file, fileName);
 
-      if (error) throw error;
-
-      const { data: pubData } = supabase.storage
-        .from("component-media")
-        .getPublicUrl(fileName);
-
-      const isVideo = file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(fileName);
       const newItem: MediaItem = {
-        name: fileName,
-        url: pubData.publicUrl,
-        type: isVideo ? "video" : "image",
+        name: uploaded.name,
+        url: uploaded.url,
+        type: uploaded.type,
         size: file.size,
         created_at: new Date().toISOString(),
       };
@@ -168,7 +174,7 @@ export default function AdminMediaPage() {
   async function handleDelete(item: MediaItem) {
     if (!confirm(`Delete "${item.name}" from storage?`)) return;
     try {
-      if (SUPABASE_CONFIGURED) {
+      if (R2_ENABLED || SUPABASE_CONFIGURED) {
         await deleteMediaFromStorage(item.url, item.name);
 
         // Also clean up any component references in database so components don't have broken links

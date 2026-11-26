@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { supabase, MEDIA_BUCKET, SUPABASE_CONFIGURED, deleteMediaFromStorage } from "@/lib/supabase";
+import {
+  supabase,
+  MEDIA_BUCKET,
+  SUPABASE_CONFIGURED,
+  R2_ENABLED,
+  R2_PUBLIC_BASE,
+  uploadMediaFile,
+  deleteMediaFromStorage,
+} from "@/lib/supabase";
 import { listComponents, updateComponent } from "@/lib/db";
 import {
   Check,
@@ -102,8 +110,26 @@ export default function MediaLibraryModal({
     setLoading(true);
     const mediaMap = new Map<string, MediaFileItem>();
 
-    // 1. Fetch from Supabase storage if connected
-    if (SUPABASE_CONFIGURED) {
+    // 1. Fetch from R2 (if configured) or Supabase storage if connected
+    if (R2_ENABLED) {
+      try {
+        const res = await fetch("/api/admin/media");
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data?.items)) {
+          for (const item of data.items as MediaFileItem[]) {
+            mediaMap.set(item.url, {
+              name: item.name.replace(/^\d+-/, ""),
+              url: item.url,
+              type: item.type,
+              size: item.size,
+              created_at: item.created_at,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("R2 list error:", err);
+      }
+    } else if (SUPABASE_CONFIGURED) {
       try {
         const { data, error } = await supabase.storage
           .from(MEDIA_BUCKET)
@@ -180,15 +206,9 @@ export default function MediaLibraryModal({
     setUploading(true);
     try {
       let finalUrl = "";
-      if (SUPABASE_CONFIGURED) {
-        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-        const path = `${Date.now()}-${safe}`;
-        const { error } = await supabase.storage
-          .from(MEDIA_BUCKET)
-          .upload(path, file, { contentType: file.type, upsert: false });
-        if (error) throw new Error(error.message);
-        const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
-        finalUrl = data.publicUrl;
+      if (R2_ENABLED || SUPABASE_CONFIGURED) {
+        const uploaded = await uploadMediaFile(file);
+        finalUrl = uploaded.url;
       } else {
         finalUrl = await new Promise<string>((resolve, reject) => {
           const r = new FileReader();

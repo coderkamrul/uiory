@@ -6,6 +6,7 @@ import type { ShowcaseItem } from "@/lib/data";
 import {
   listComponents,
   deleteComponent,
+  deleteComponents,
   listCategories,
   deleteCategory,
   updateCategory,
@@ -53,6 +54,8 @@ export default function AdminComponentsPage() {
   const [newCatName, setNewCatName] = useState("");
   const [isAddingCat, setIsAddingCat] = useState(false);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // Edit category modal state
   const [catToEdit, setCatToEdit] = useState<{
@@ -130,7 +133,77 @@ export default function AdminComponentsPage() {
     if (!confirm(`Delete “${item.title}”? This removes it from the showcase.`)) return;
     await deleteComponent(item.slug);
     setItems((prev) => prev.filter((i) => i.slug !== item.slug));
+    setSelectedSlugs((prev) => {
+      if (!prev.has(item.slug)) return prev;
+      const next = new Set(prev);
+      next.delete(item.slug);
+      return next;
+    });
     setNotice(`Deleted “${item.title}”.`);
+  }
+
+  function toggleSelectSlug(slug: string) {
+    setSelectedSlugs((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  }
+
+  const allPageSelected =
+    paginatedItems.length > 0 &&
+    paginatedItems.every((i) => selectedSlugs.has(i.slug));
+  const allShownSelected =
+    shown.length > 0 && shown.every((i) => selectedSlugs.has(i.slug));
+
+  function toggleSelectPage() {
+    setSelectedSlugs((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) {
+        for (const item of paginatedItems) next.delete(item.slug);
+      } else {
+        for (const item of paginatedItems) next.add(item.slug);
+      }
+      return next;
+    });
+  }
+
+  function selectAllShown() {
+    setSelectedSlugs(new Set(shown.map((i) => i.slug)));
+  }
+
+  function clearSelection() {
+    setSelectedSlugs(new Set());
+  }
+
+  async function handleBulkDelete(slugsToDelete: string[], label: string) {
+    if (slugsToDelete.length === 0) return;
+    if (
+      !confirm(
+        `Delete ${slugsToDelete.length} ${label}? This permanently removes them from the showcase.`
+      )
+    ) {
+      return;
+    }
+    setIsBulkDeleting(true);
+    try {
+      await deleteComponents(slugsToDelete);
+      const removed = new Set(slugsToDelete);
+      setItems((prev) => prev.filter((i) => !removed.has(i.slug)));
+      setSelectedSlugs((prev) => {
+        const next = new Set(prev);
+        for (const s of slugsToDelete) next.delete(s);
+        return next;
+      });
+      setNotice(`Deleted ${slugsToDelete.length} component(s).`);
+    } catch (err: unknown) {
+      alert(
+        `Failed to bulk delete: ${err instanceof Error ? err.message : String(err)}`
+      );
+    } finally {
+      setIsBulkDeleting(false);
+    }
   }
 
   function promptDeleteCategory(catName: string) {
@@ -367,6 +440,87 @@ export default function AdminComponentsPage() {
             </div>
           </div>
 
+          {/* Bulk Selection & Action Bar */}
+          {loaded && shown.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#222226] bg-[#141418] px-4 py-2.5 text-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 text-ink-2 hover:text-white select-none">
+                  <input
+                    type="checkbox"
+                    checked={allPageSelected}
+                    onChange={toggleSelectPage}
+                    className="h-4 w-4 rounded border-white/20 bg-[#1a1a1f] accent-blue-500 cursor-pointer"
+                  />
+                  <span>Select page ({paginatedItems.length})</span>
+                </label>
+
+                {!allShownSelected && shown.length > paginatedItems.length && (
+                  <button
+                    type="button"
+                    onClick={selectAllShown}
+                    className="cursor-pointer text-blue-400 hover:text-blue-300 font-medium underline underline-offset-2"
+                  >
+                    Select all {shown.length} matching
+                  </button>
+                )}
+
+                {selectedSlugs.size > 0 && (
+                  <>
+                    <span className="text-ink-3">·</span>
+                    <span className="font-semibold text-white">
+                      {selectedSlugs.size} selected
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearSelection}
+                      className="cursor-pointer text-ink-3 hover:text-white"
+                    >
+                      Clear
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {selectedSlugs.size > 0 && (
+                  <button
+                    type="button"
+                    disabled={isBulkDeleting}
+                    onClick={() =>
+                      handleBulkDelete(
+                        Array.from(selectedSlugs),
+                        "selected component(s)"
+                      )
+                    }
+                    className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/15 px-3 py-1.5 text-xs font-bold text-rose-200 transition hover:bg-rose-500/25 disabled:opacity-50"
+                  >
+                    <Trash2 size={13} />
+                    {isBulkDeleting
+                      ? "Deleting…"
+                      : `Delete Selected (${selectedSlugs.size})`}
+                  </button>
+                )}
+
+                {items.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={isBulkDeleting}
+                    onClick={() =>
+                      handleBulkDelete(
+                        items.map((i) => i.slug),
+                        "component(s) (ALL)"
+                      )
+                    }
+                    className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-rose-500/20 bg-rose-500/[0.06] px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/15 disabled:opacity-50"
+                  >
+                    <Trash2 size={13} />
+                    Delete All ({items.length})
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Components List */}
           <div className="overflow-hidden rounded-2xl border border-[#222226] bg-[#121215] shadow-sm">
             {!loaded ? (
@@ -390,9 +544,18 @@ export default function AdminComponentsPage() {
                 {paginatedItems.map((item) => (
                   <li
                     key={item.slug}
-                    className="flex flex-wrap items-center justify-between gap-4 p-4 transition hover:bg-white/[0.02]"
+                    className={`flex flex-wrap items-center justify-between gap-4 p-4 transition hover:bg-white/[0.02] ${
+                      selectedSlugs.has(item.slug) ? "bg-blue-500/[0.05]" : ""
+                    }`}
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedSlugs.has(item.slug)}
+                        onChange={() => toggleSelectSlug(item.slug)}
+                        aria-label={`Select ${item.title}`}
+                        className="h-4 w-4 shrink-0 rounded border-white/20 bg-[#1a1a1f] accent-blue-500 cursor-pointer"
+                      />
                       {/* Paused Media Preview Thumbnail */}
                       <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-xl bg-[#1c1c20] border border-white/5">
                         {(item.mediaType === "video" ||

@@ -7,7 +7,9 @@ import {
 import { createComponent, ensureCategory, listCategories, listComponents } from "@/lib/db";
 
 export const DEMO_FALLBACK_URL =
-  "https://ttlpdghpwefufqrppmsv.supabase.co/storage/v1/object/public/component-media/1793027269194-site-background.webp";
+  process.env.NEXT_PUBLIC_R2_PUBLIC_URL
+    ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL.replace(/\/+$/, "")}/1793027269194-site-background.webp`
+    : "/logo-black-bg.png";
 
 /**
  * Checks if a URL is a streaming playlist (e.g. Mux / HLS .m3u8, DASH .mpd)

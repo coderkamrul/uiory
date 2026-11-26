@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { R2_CONFIGURED, R2_PUBLIC_URL, uploadToR2 } from "@/lib/r2";
 
 export const runtime = "nodejs";
 
-const DEMO_FALLBACK_URL =
-  "https://ttlpdghpwefufqrppmsv.supabase.co/storage/v1/object/public/component-media/1793027269194-site-background.webp";
+const DEMO_FALLBACK_URL = R2_PUBLIC_URL
+  ? `${R2_PUBLIC_URL}/1793027269194-site-background.webp`
+  : "/logo-black-bg.png";
 const MEDIA_BUCKET = "component-media";
 
 export async function POST(req: NextRequest) {
@@ -42,8 +44,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Check if the URL is already hosted in the component-media bucket
-    if (mediaUrl.includes(`/${MEDIA_BUCKET}/`)) {
+    // Check if the URL is already hosted in our R2 bucket or component-media bucket
+    if (
+      (R2_PUBLIC_URL && mediaUrl.startsWith(R2_PUBLIC_URL)) ||
+      mediaUrl.includes(`/${MEDIA_BUCKET}/`)
+    ) {
       const isVideo =
         /\.(mp4|webm|mov|mkv)(\?.*)?$/i.test(mediaUrl);
       return NextResponse.json({
@@ -60,14 +65,14 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    // If Supabase is not configured, fallback to demo
-    if (!supabaseUrl || !supabaseKey) {
+    // If neither R2 nor Supabase is configured, fallback to demo
+    if (!R2_CONFIGURED && (!supabaseUrl || !supabaseKey)) {
       return NextResponse.json({
         success: true,
         url: DEMO_FALLBACK_URL,
         type: "image",
         fallback: true,
-        reason: "Supabase not configured",
+        reason: "Media storage not configured",
       });
     }
 
@@ -147,8 +152,21 @@ export async function POST(req: NextRequest) {
       .replace(/^-+|-+$/g, "");
     const filename = `${Date.now()}-${safeTitle || "media"}.${ext}`;
 
+    const resolvedContentType =
+      contentType || (isVideo ? "video/mp4" : "image/webp");
+
+    if (R2_CONFIGURED) {
+      const publicUrl = await uploadToR2(filename, buffer, resolvedContentType);
+      return NextResponse.json({
+        success: true,
+        url: publicUrl,
+        type: mediaType,
+        fallback: false,
+      });
+    }
+
     const authHeader = req.headers.get("authorization");
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    const supabase = createClient(supabaseUrl!, supabaseKey!, {
       auth: { persistSession: false },
       global: {
         headers: authHeader ? { Authorization: authHeader } : {},
@@ -158,7 +176,7 @@ export async function POST(req: NextRequest) {
     const { error: uploadError } = await supabase.storage
       .from(MEDIA_BUCKET)
       .upload(filename, buffer, {
-        contentType: contentType || (isVideo ? "video/mp4" : "image/webp"),
+        contentType: resolvedContentType,
         upsert: false,
       });
 
